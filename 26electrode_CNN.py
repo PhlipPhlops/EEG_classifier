@@ -4,27 +4,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-SANDBOX_DATA_PATH = 'data/AgnaldoE/2.csv'
-eeg = pd.read_csv(SANDBOX_DATA_PATH)
+from load_pat_data import data, labels
 
-def eeg_to_matrix(eeg):
-  # Drop unnamed last column
-  if len(eeg.columns) == 1002:
-    eeg = eeg.drop(eeg.columns[1001], axis=1)
-  # Drop electrode labels
-  eeg = eeg.drop(eeg.columns[0], axis=1)
-  # Should return shape (26, 1000)
-  # 26 electrodes, 1000 measurements
-  return eeg.to_numpy()
-  
-# Mock single data instance
-eeg = eeg_to_matrix(eeg)
+# Leliane data instance
+split = int(0.8 * len(labels))
 
-train_data = np.array([eeg, eeg, eeg, eeg])
-train_labels = np.array([1, 1, 1, 1])
-
-test_data = np.array([eeg, eeg])
-test_labels = np.array([1, 1])
+train_data, test_data = data[split:], data[:split]
+train_labels, test_labels = labels[split:], labels[:split]
 
 # Reshape to (n_images, x_shape, y_shape, channels)
 s = train_data.shape
@@ -42,7 +28,6 @@ def show_plot(eeg):
   plt.figure(figsize=(200,200))
   plt.imshow(eeg)
   plt.show()
-show_plot(eeg)
 
 def define_model():
   model = models.Sequential()
@@ -50,7 +35,7 @@ def define_model():
   # (26, 3) kernal, stretch across all electrodes
   # Each timestep of EEG is .002s
   model.add(layers.Conv2D(20, (26, 10),
-                          activation='relu', input_shape=(26, 1000, 1)))
+                          activation='relu', input_shape=(26, 151, 1)))
   model.add(layers.MaxPooling2D((1, 4)))
   model.add(layers.Conv2D(10, (1, 4), activation='relu'))
 
@@ -66,7 +51,7 @@ def train_model(model, train_data, train_labels, test_data, test_labels):
   model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
-  history = model.fit(train_data, train_labels, epochs=10, 
+  history = model.fit(train_data, train_labels, epochs=2000, 
                       validation_data=(test_data, test_labels))
   return history
 
