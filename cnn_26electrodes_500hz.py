@@ -40,14 +40,16 @@ def define_model():
     model = models.Sequential()
     ## Convolutional network for feature extraction
     model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            activation='relu', input_shape=(26, 500, 1)))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-    model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+                            input_shape=(26, 500, 1)))
+    model.add(layers.LeakyReLU())
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+    # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
 
     ## Fully connected NN for classification
     model.add(layers.Flatten())
-    model.add(layers.Dense(24, activation='relu'))
+    model.add(layers.Dense(24))
+    model.add(layers.LeakyReLU())
     model.add(layers.Dense(1, activation='sigmoid'))
 
     model.summary()
@@ -67,7 +69,7 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=200, 
+    model_history = model.fit(train_X, train_Y, epochs=2000, 
                         validation_data=(test_X, test_Y))
     return model_history
 
@@ -88,9 +90,10 @@ history = train_model(
                     test_data, test_labels)
 plot_history(history)
 
-test_loss, test_acc = CNN_model.evaluate(test_data,  test_labels, verbose=2)
+print(CNN_model.metrics)
+eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
 
-print(f'Test accuracy: {test_acc}')
+print(f'Eval metrics: {eval_metrics}')
 print('Metric reminder: Precision = (TP / TP + FP), Recall = (TP / TP + FN)')
 print('Sensitivity: ratio of correctly defined Positives')
 print('Specificity: ratio of correctly defined Negatives')
