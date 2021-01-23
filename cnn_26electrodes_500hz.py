@@ -7,8 +7,12 @@ from tensorflow.keras import layers, models, metrics
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from transformations import Transforms
 
 from data_500hz_1s.load_data import data, labels
+
+# Fourier Transform all data
+data = Transforms().fourier_transform_all(data)
 
 # Split data, (SPLIT_RATIO) training set, (1 - SPLIT_RATIO) testing set
 SPLIT_RATIO = 0.8
@@ -69,7 +73,7 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=2000, 
+    model_history = model.fit(train_X, train_Y, epochs=750, 
                         validation_data=(test_X, test_Y))
     return model_history
 

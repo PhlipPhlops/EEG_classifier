@@ -6,19 +6,40 @@ import scipy.fftpack
 class Transforms():
     """Data transformation methods"""
 
-    def fourier_transform(self, electrode):
+    def fourier_transform_1e(self, data, electrode=17):
         """Decomposes timeseries data from a single electrode
         at index <electrode>
+
+        data: list of eeg scan matrices
+        electrode: defaults for 26 electrode scans: {17: Cz, 4: C3, 5: C4}
         """
-        # Number of samplepoints
-        N = 600
-        # Sample spacing
-        T = 1.0 / 500.0
-        # x = np.linspace(0.0, N*T, N)
-        x = data[1][electrode]
-        # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
-        yf = scipy.fftpack.fft(x)
-        xf = np.linspace(0.0, int(1.0/(2.0*T)), int(N/2))
+        transformed = []
+        for d in data:
+            x = d[electrode]
+            # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
+            yf = scipy.fftpack.fft(x)
+            transformed.append(yf)
+        transformed = np.asarray(transformed)
+        return transformed
+
+    def fourier_transform_all(self, data):
+        """Decomposes timeseries data from all electrodes into 2d array
+
+        data: list of eeg scan matrices
+        """
+        transformed = []
+        for d in data:
+            d_transformed = []
+            for e in range(d.shape[0]):
+                # Grab data from electrode e
+                x = d[e]
+                # transform
+                yf = scipy.fftpack.fft(x)
+                d_transformed.append(yf)
+            d_transformed = np.asarray(d_transformed)
+            transformed.append(d_transformed)
+        transformed = np.asarray(transformed)
+        return transformed
         
 
 
@@ -26,14 +47,19 @@ if __name__ == "__main__":
     from data_500hz_1s.load_data import data, labels
     from visualizer import Visualizer
 
-    # Number of samplepoints
+    t = Transforms()
+    data = t.fourier_transform(data)
+    print(data.shape)
+
+    # # Number of samplepoints
     N = 600
-    # Sample spacing
+    # # Sample spacing
     T = 1.0 / 500.0
-    # x = np.linspace(0.0, N*T, N)
-    x = data[1][1]
-    # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
-    yf = scipy.fftpack.fft(x)
+    # # x = np.linspace(0.0, N*T, N)
+    # x = data[1][1]
+    # # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
+    # yf = scipy.fftpack.fft(x)
+    yf = data[1]
     xf = np.linspace(0.0, int(1.0/(2.0*T)), int(N/2))
 
     fig, ax = plt.subplots()
