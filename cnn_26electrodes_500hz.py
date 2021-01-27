@@ -39,12 +39,12 @@ print(test_labels.shape)
 
 def define_model():
     """Defines a joint convolutional net & fully connected neural net
-    for the purposes of classifying 26(electrode)x500(sample@500hz) EEG data
+    for the purposes of classifying 19(electrode)x500(sample@500hz) EEG data
     as an epileptic event"""
     model = models.Sequential()
     ## Convolutional network for feature extraction
     model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            input_shape=(26, 500, 1)))
+                            input_shape=(19, 500, 1)))
     model.add(layers.LeakyReLU())
     # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
     # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
@@ -73,7 +73,7 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=150, 
+    model_history = model.fit(train_X, train_Y, epochs=250,
                         validation_data=(test_X, test_Y))
     return model_history
 
@@ -94,10 +94,5 @@ history = train_model(
                     test_data, test_labels)
 plot_history(history)
 
-print(CNN_model.metrics)
+print("====== Evaluating ======")
 eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
-
-print(f'Eval metrics: {eval_metrics}')
-print('Metric reminder: Precision = (TP / TP + FP), Recall = (TP / TP + FN)')
-print('Sensitivity: ratio of correctly defined Positives')
-print('Specificity: ratio of correctly defined Negatives')

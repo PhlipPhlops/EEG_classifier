@@ -17,7 +17,10 @@ import pandas as pd
 
 # International standard; 19 electrodes
 # Expecting 1 second epoch at 500hz
-EXPECTED_SHAPE = (26, 500)
+EXPECTED_SHAPE = (19, 500)
+
+# Expected for default clinic data
+# EXPECTED_SHAPE = (26, 500)
 
 def eeg_to_matrix(eeg):
     """Trims the expected unnecessary columns from a loaded eeg .csv
@@ -43,18 +46,23 @@ def eeg_to_matrix(eeg):
     18  -  P8 = T6
     19  -  O2
     """
-    ### WIP: Drop nonstandards
-    # KEPT_ELECTRODES = [
-    #     'Fp1', 'F3', 'F7', 'C3', 'T3', 'P3', 'T5', 'O1', 'Pz',
-    #     'Fp2', 'Fz', 'F4', 'F8', 'Cz', 'C4', 'T4', 'P4', 'T6', 'O2'
-    # ]
-    # # Electrodes labels look like "EEG Fp1", apply for string matching
-    # kept = ['EEG ' + el_label for el_label in KEPT_ELECTRODES]
+    KEPT_ELECTRODES = [
+        'Fp1', 'F3', 'F7', 'C3', 'T3', 'P3', 'T5', 'O1', 'Pz',
+        'Fp2', 'Fz', 'F4', 'F8', 'Cz', 'C4', 'T4', 'P4', 'T6', 'O2'
+    ]
+    # Electrodes labels look like "EEG Fp1", apply for string matching
+    kept_labels = [el_label.upper() for el_label in KEPT_ELECTRODES]
 
-    # # Drop all electrodes aside from international standard
-    # # WARNING: Not safe to assume Time is a column on all .edf imports
-    # eeg = eeg[eeg.columns[0].isin(kept)]
-    ###
+    # Drop all electrodes aside from international standard
+    # WARNING: Not safe to assume Time is a column on all .edf imports
+    if 'Time' in eeg:
+        eeg = eeg[eeg.apply(lambda row: any(label in row[0].upper() for label in kept_labels), axis=1)]
+        # Sort alphabetically by electrode label (just for consistent ordering)
+        eeg = eeg.sort_values('Time', ascending=True)
+    else:
+        # Assuming no electrode labels
+        # Return a dead matrix to be caught by validator
+        return np.asarray([])
 
     # Drop unnamed last column
     eeg = eeg.drop(eeg.columns[len(eeg.columns)-1], axis=1)
