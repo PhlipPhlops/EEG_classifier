@@ -9,7 +9,9 @@ import pandas as pd
 import numpy as np
 from transformations import Transforms
 
-from data_500hz_1s.load_data import data, labels
+from load_data import load_eeg_data
+
+data, labels = load_eeg_data()
 
 # Fourier Transform all data
 data = Transforms().fourier_transform_all(data)
@@ -26,6 +28,8 @@ s = train_data.shape
 train_data = train_data.reshape(s[0], s[1], s[2], 1)
 s = test_data.shape
 test_data = test_data.reshape(s[0], s[1], s[2], 1)
+
+EEG_SHAPE = (19, 500)
 
 # Values are bounded between 1, -1 (as far as I've seen)
 # no need to normalize
@@ -44,7 +48,7 @@ def define_model():
     model = models.Sequential()
     ## Convolutional network for feature extraction
     model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            input_shape=(19, 500, 1)))
+                            input_shape=(EEG_SHAPE[0], EEG_SHAPE[1], 1)))
     model.add(layers.LeakyReLU())
     # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
     # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
@@ -96,3 +100,9 @@ plot_history(history)
 
 print("====== Evaluating ======")
 eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
+accuracy = int(eval_metrics[1] * 100)
+
+print("====== Saving ======")
+save_file = f'./stored_models/19eX500hz_1s.{accuracy}acc.h5'
+CNN_model.save(save_file)
+print(f"Saving to {save_file}")
