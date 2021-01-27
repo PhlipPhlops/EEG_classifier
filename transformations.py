@@ -2,9 +2,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.fftpack
+import scipy.stats
 
 class Transforms():
     """Data transformation methods"""
+
+    def entropy_transform(self, data):
+        """Extract entropy data from EEG recordings
+
+        data: list of eeg scan matrices
+        """
+        transformed = []
+        for d in data:
+            d_transformed = []
+            for e in range(d.shape[0]):
+                x = d[e]
+                yf = scipy.stats.entropy(x)
+                d_transformed.append(yf)
+            d_transformed = np.asarray(d_transformed)
+            transformed.append(yf)
+        transformed = np.asarray(transformed)
+        return transformed
 
     def fourier_transform_1e(self, data, electrode=17):
         """Decomposes timeseries data from a single electrode
@@ -16,7 +34,6 @@ class Transforms():
         transformed = []
         for d in data:
             x = d[electrode]
-            # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
             yf = scipy.fftpack.fft(x)
             transformed.append(yf)
         transformed = np.asarray(transformed)
@@ -41,48 +58,46 @@ class Transforms():
         transformed = np.asarray(transformed)
         return transformed
         
+    def hellohello_transform(self, data, window_size=64, step=14):
+        """Transform based on notes provided by Daniele in Telegram post
+        captioned "hello hello"
+
+        Sliding window across electrode rows Cz, C3, C4, fft the window
+
+        Stack fft from windows horizontally into row chunks
+        Stack those row chunks from all 3 electrodes vertically
+        
+        data: list of eeg scan matrices
+        """
+        # Electrodes C3, CZ, C4 (assuming 26 electrode EEG)
+        electrodes = [4, 17, 5]
+        transformed = []
+        for d in data:
+            d_transformed = []
+            for e in electrodes:
+                # Grab data from electrode e
+                x = d[e]
+                pseudo_filters = []
+                for i in range(0, len(x) - window_size, step):
+                    # Sliding window
+                    window = x[i : i + window_size]
+                    f_window = scipy.fftpack.fft(window)
+                    pseudo_filters.append(f_window)
+                # arrange matrix of window_size x num_windows
+                pseudo_filters = np.asarray(pseudo_filters)
+                # stack the electrodes on top
+                d_transformed.append(pseudo_filters)
+            # stack the electrodes vertically
+            d_transformed = np.asarray(d_transformed)
+            d_transformed = np.reshape(d_transformed, (96, 64))
+            transformed.append(d_transformed)
+        transformed = np.asarray(transformed)
+        return transformed
 
 
 if __name__ == "__main__":
     from data_500hz_1s.load_data import data, labels
-    from visualizer import Visualizer
 
     t = Transforms()
-    data = t.fourier_transform(data)
-    print(data.shape)
-
-    # # Number of samplepoints
-    N = 600
-    # # Sample spacing
-    T = 1.0 / 500.0
-    # # x = np.linspace(0.0, N*T, N)
-    # x = data[1][1]
-    # # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
-    # yf = scipy.fftpack.fft(x)
-    yf = data[1]
-    xf = np.linspace(0.0, int(1.0/(2.0*T)), int(N/2))
-
-    fig, ax = plt.subplots()
-    ax.plot(xf, 2.0/N * np.abs(yf[:int(N/2)]))
-    plt.show()
-
-    # # d is an eeg matrix shape (26, 500)
-    # d = data[1]
-    # # now d is a single electrode shape (500,)
-    # d = d[1]
-    # fourier = np.fft.fft(d)
-    # # fourier shape is (500,)
-    # print(fourier.shape)
-    # print(fourier)
-    # print(fourier.dtype)
-
-    # fq = 10.
-    # time_interval = 1
-    # samples = 10
-
-    # t, y = tra._generate_sinewave(fq, time_interval, samples)
-    # viz.plot_wave(t, y)
-
-    # time = np.arange(0, 10, 0.1)
-    # amplitude = np.sin(time)
-    # viz.plot_wave(time, amplitude)
+    trans = t.entropy_transform(data)
+    print(trans)

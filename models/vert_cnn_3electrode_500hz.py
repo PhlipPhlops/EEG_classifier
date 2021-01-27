@@ -12,7 +12,7 @@ from transformations import Transforms
 from data_500hz_1s.load_data import data, labels
 
 # Fourier Transform all data
-data = Transforms().fourier_transform_all(data)
+data = Transforms().hellohello_transform(data)
 
 # Split data, (SPLIT_RATIO) training set, (1 - SPLIT_RATIO) testing set
 SPLIT_RATIO = 0.8
@@ -44,7 +44,7 @@ def define_model():
     model = models.Sequential()
     ## Convolutional network for feature extraction
     model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            input_shape=(26, 500, 1)))
+                            input_shape=(96, 64, 1)))
     model.add(layers.LeakyReLU())
     # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
     # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
@@ -73,7 +73,7 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=150, 
+    model_history = model.fit(train_X, train_Y, epochs=750, 
                         validation_data=(test_X, test_Y))
     return model_history
 

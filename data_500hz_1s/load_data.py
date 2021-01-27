@@ -15,13 +15,50 @@ import random
 import numpy as np
 import pandas as pd
 
+# International standard; 19 electrodes
+# Expecting 1 second epoch at 500hz
 EXPECTED_SHAPE = (26, 500)
 
 def eeg_to_matrix(eeg):
     """Trims the expected unnecessary columns from a loaded eeg .csv
-    and returns as a numpy matrix"""
+    and returns as a numpy matrix
+
+    1  -  Fp1
+    2  -  F3
+    3  -  F7
+    4  -  C3
+    5  -  T7 = T3
+    6  -  P3
+    7  -  P7 = T5
+    8  -  O1
+    9  -  Pz
+    10  -  Fp2
+    11  -  Fz
+    12  -  F4
+    13  -  F8
+    14  -  Cz
+    15  -  C4
+    16  -  T8 = T4
+    17  -  P4
+    18  -  P8 = T6
+    19  -  O2
+    """
+    ### WIP: Drop nonstandards
+    # KEPT_ELECTRODES = [
+    #     'Fp1', 'F3', 'F7', 'C3', 'T3', 'P3', 'T5', 'O1', 'Pz',
+    #     'Fp2', 'Fz', 'F4', 'F8', 'Cz', 'C4', 'T4', 'P4', 'T6', 'O2'
+    # ]
+    # # Electrodes labels look like "EEG Fp1", apply for string matching
+    # kept = ['EEG ' + el_label for el_label in KEPT_ELECTRODES]
+
+    # # Drop all electrodes aside from international standard
+    # # WARNING: Not safe to assume Time is a column on all .edf imports
+    # eeg = eeg[eeg.columns[0].isin(kept)]
+    ###
+
     # Drop unnamed last column
     eeg = eeg.drop(eeg.columns[len(eeg.columns)-1], axis=1)
+
     # Drop electrode labels
     eeg = eeg.drop(eeg.columns[0], axis=1)
     return eeg.to_numpy()
@@ -33,13 +70,25 @@ def validate_matrix(matrix, expected_shape, on_err):
         on_err()
     return matrix.shape == expected_shape
 
-def load_patient_files():
+def load_patient_files(load_negative_patients=False, show_ratio=False, scramble_electrodes=False):
     """Returns a tuple of two values: a list of EEG matrices, a list of Epilepsy labels
     Data is gathered by loading every .csv in each subdirectory to this one
     Labels are gathered by looked at the suffix of the subdirectory
+
+    load_negative_patient: if True, loads up epilepsy Negative patients, avoids
+        epilepsy Postive patients marked as _E, and loads _NE patients as epilepsy positive
+    show_ratio: show how many files are loaded for each patient
+    scramble_electrodes: shuffle order of electrodes (rows)
     """
+    print("====== Loading data ======")
+    print(f"Scramble electrodes: {scramble_electrodes}")
+    print(f"Loading for epilepsy negative patients: {load_negative_patients}")
+    print("=====/ Loading data /=====")
+
     matrix_list = []
     label_list = []
+    # Keys: Directory name, count
+    ratio_count = {}
     # Index 0 counts label 0, Index 1 counts label 1
     info_counter = [0, 0]
     # Get path to current directory
@@ -48,11 +97,27 @@ def load_patient_files():
     # [1:] excludes the current './' directory
     directory_names = [x[0] for x in os.walk(curr_dir_path)][1:]
     for directory in directory_names:
-        # Set label based on directory suffix
-        if directory.endswith('_E'):
-            label = 1
-        elif directory.endswith('_NE'):
-            label = 0
+        if load_negative_patients:
+            # Set label based on directory suffix
+            if directory.endswith('_E'):
+                # Skip epilepsy positive events
+                continue
+            elif directory.endswith('_NE'):
+                label = 1
+            elif 'Negative_Patients' in directory:
+                label = 0
+            else:
+                continue
+        else:
+            # Set label based on directory suffix
+            if directory.endswith('_E'):
+                label = 1
+            elif directory.endswith('_NE'):
+                label = 0
+            else:
+                continue
+
+        ratio_count[directory] = 0
         # Load csv into matrices
         for csv in os.listdir(directory):
             path = directory + "/" + csv
@@ -62,6 +127,10 @@ def load_patient_files():
             eeg = pd.read_csv(path, engine='python')
             matrix = eeg_to_matrix(eeg)
 
+            if scramble_electrodes:
+                # Shuffles only rows, not columns
+                np.random.shuffle(matrix)
+
             def validation_err():
                 print(f"Validation failed: {path}", end=' || ')
                 print(f"Expected shape: {EXPECTED_SHAPE}, got {matrix.shape}")
@@ -70,8 +139,14 @@ def load_patient_files():
                 matrix_list.append(matrix)
                 label_list.append(label)
                 info_counter[label] += 1
+                ratio_count[directory] += 1
     print(f"Loaded: {info_counter[1]} Epileptic, {info_counter[0]} Non-Epileptic @ ", end='')
     print(f"{EXPECTED_SHAPE[0]} electrodes, {EXPECTED_SHAPE[1]} Hz")
+    # Show patient names and E/NE breakdown
+    if show_ratio:
+        for directory in ratio_count:
+            print(f"{directory} + {ratio_count[directory]}")
+
     return matrix_list, label_list
 
 def shuffle_maintain_relation(data_list, label_list):
@@ -85,5 +160,5 @@ def shuffle_maintain_relation(data_list, label_list):
     return data_list, label_list
 
 
-data, labels = load_patient_files()
+data, labels = load_patient_files(show_ratio=True, load_negative_patients=False)
 data, labels = shuffle_maintain_relation(data, labels)

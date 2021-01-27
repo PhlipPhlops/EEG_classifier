@@ -3,7 +3,7 @@ from Non-Epilepsy events
 
 Trains on 1s events at a 500hz sample rate with 26 electrodes"""
 import tensorflow as tf
-from tensorflow.keras import layers, models, metrics
+from tensorflow.keras import layers, models, metrics, callbacks
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -11,8 +11,8 @@ from transformations import Transforms
 
 from data_500hz_1s.load_data import data, labels
 
-# Fourier Transform all data
-data = Transforms().fourier_transform_all(data)
+# Decompose signals
+data = Transforms().fourier_transform(data)
 
 # Split data, (SPLIT_RATIO) training set, (1 - SPLIT_RATIO) testing set
 SPLIT_RATIO = 0.8
@@ -21,11 +21,11 @@ split = int(SPLIT_RATIO * len(labels))
 train_data, test_data = data[:split], data[split:]
 train_labels, test_labels = labels[:split], labels[split:]
 
-# Reshape to (n_images, x_shape, y_shape, channels)
+# Reshape to (n_images, x_shape, channels)
 s = train_data.shape
-train_data = train_data.reshape(s[0], s[1], s[2], 1)
+train_data = train_data.reshape(s[0], s[1], 1)
 s = test_data.shape
-test_data = test_data.reshape(s[0], s[1], s[2], 1)
+test_data = test_data.reshape(s[0], s[1], 1)
 
 # Values are bounded between 1, -1 (as far as I've seen)
 # no need to normalize
@@ -43,16 +43,13 @@ def define_model():
     as an epileptic event"""
     model = models.Sequential()
     ## Convolutional network for feature extraction
-    model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            input_shape=(26, 500, 1)))
+    model.add(layers.Conv1D(filters=20, kernel_size=5,
+                            input_shape=(500, 1)))
     model.add(layers.LeakyReLU())
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-    # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
 
     ## Fully connected NN for classification
     model.add(layers.Flatten())
-    model.add(layers.Dense(24))
+    model.add(layers.Dense(12))
     model.add(layers.LeakyReLU())
     model.add(layers.Dense(1, activation='sigmoid'))
 
@@ -70,11 +67,15 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
         metrics.FalsePositives(),
         metrics.FalseNegatives()
     ]
+    cb_list = [
+        callbacks.EarlyStopping(monitor="val_acc", patience=250, restore_best_weights=True)
+    ]
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=150, 
-                        validation_data=(test_X, test_Y))
+    model_history = model.fit(train_X, train_Y, epochs=2000, 
+                        validation_data=(test_X, test_Y),
+                        callbacks=cb_list)
     return model_history
 
 def plot_history(history):
@@ -96,8 +97,3 @@ plot_history(history)
 
 print(CNN_model.metrics)
 eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
-
-print(f'Eval metrics: {eval_metrics}')
-print('Metric reminder: Precision = (TP / TP + FP), Recall = (TP / TP + FN)')
-print('Sensitivity: ratio of correctly defined Positives')
-print('Specificity: ratio of correctly defined Negatives')
