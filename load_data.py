@@ -23,9 +23,9 @@ EXPECTED_SHAPE = (19, 500)
 # EXPECTED_SHAPE = (26, 500)
 
 def eeg_to_matrix(eeg):
-    """Trims the expected unnecessary columns from a loaded eeg .csv
+    """Excludes non-standard electrodes,
+    Trims the expected unnecessary columns from a loaded eeg .csv
     and returns as a numpy matrix
-
     1  -  Fp1
     2  -  F3
     3  -  F7
