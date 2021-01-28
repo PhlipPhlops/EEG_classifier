@@ -7,18 +7,39 @@ class EDFReader():
     """Suit of methods for edf files"""
     def __init__(self, file_path):
         self.raw_edf = mne.io.read_raw_edf(file_path)
-
-    def print_data(self):
-        """Display values from edf"""
-        print(self.raw_edf.load_data())
-
-    def plot(self):
-        self.raw_edf.plot()
+        self.info = self.raw_edf.info
+        self.sample_rate = self.info['sfreq']
+        self.raw_edf.resample(500)
 
     def to_data_frame(self):
+        """Returns a dataframe of (#electrodes)x(#timesteps)"""
         return self.raw_edf.to_data_frame().transpose()
 
-edf = EDFReader('data_other/gabriel.edf')
-edf.print_data()
-edf.plot()
-print(edf.to_data_frame())
+    def visualize(self):
+        """Plot to visual waveforms"""
+        self.raw_edf.plot(block=True)
+
+    def resample(self, sample_rate):
+        """Change the samplerate"""
+        self.raw_edf.resample(sample_rate)
+        self.sample_rate = self.raw_edf.info['sfreq']
+
+    def data_to_standard_matrix(self):
+        """Returns data as a numpy matrix excluding rows from non-standard
+        electrodes
+        """
+        KEPT_ELECTRODES = [
+            'Fp1', 'F3', 'F7', 'C3', 'T3', 'P3', 'T5', 'O1', 'Pz',
+            'Fp2', 'Fz', 'F4', 'F8', 'Cz', 'C4', 'T4', 'P4', 'T6', 'O2'
+        ]
+        # Different labels for the same electrodes
+        KEPT_ELECTRODES.extend(['T7', 'P7', 'T8', 'P8'])
+        # Electrodes labels look like "EEG Fp1", apply for string matching
+        kept_e = [el_label.upper() for el_label in KEPT_ELECTRODES]
+
+        eeg = self.to_data_frame()
+        # Drop all electrodes aside from international standard
+        eeg = eeg[eeg.apply(lambda row: any(label in row.name for label in kept_e), axis=1)]
+        # Would sort alphabetically for consistency, but assuming EDF has its own consistency
+
+        return eeg.to_numpy()
