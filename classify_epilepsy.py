@@ -33,24 +33,27 @@ def sliding_window(data, model_path='./stored_models/19eX500hz_1s.95acc.h5'):
     model = keras.models.load_model(model_path)
     
     # Slide window across data
-    last_print_i = 0
+    last_positive_i = 0
     for i in range(0, data.shape[1]-WINDOW_SIZE, STEP_WIDTH):
         # Convert window into a "list" (one element) of windows
+        # needs to be in a list for the following transform
         window = np.array([data[:, i:(i+WINDOW_SIZE)]])
         transformed = Transforms().fourier_transform_all(window)
         # Reshape for predictor (n_images=1, x_shape, y_shape, channels)
         s = transformed.shape
         transformed = transformed.reshape(1, s[1], s[2], 1)
+        # Predict on the "list" of windows
         prediction_list = model.predict(transformed)
+        # Grab the prediction value
         p = prediction_list[0][0]
 
         console = "{}s-{}s: {:.2f}".format(i2sec(i), i2sec(i+WINDOW_SIZE), p)
         if p > THRESHOLD:
-            if i - last_print_i > WINDOW_SIZE:
+            if i - last_positive_i > WINDOW_SIZE:
                 print("-----------")
-                last_print_i = i
+            last_positive_i = i
             console = "---> " + console
-        print(console)
+            print(console)
 
 
 def classify_prechunked_data():
@@ -81,15 +84,50 @@ def classify_prechunked_data():
 
 
 if __name__ == "__main__":
-    # # Test import of large data
-    # print("Loading (thicc) file")
-    # csv = pd.read_csv('./data_other/0_1000.csv', header=None)
-    # print("Loaded. Highlighting.")
-    # # csv = pd.read_pickle('./data_other/1ks_sample.pkl')
+    def testCSV():
+        # Test import of large data
+        print("Loading (thicc) file")
+        # csv = pd.read_csv('./data_other/0_1000.csv', header=None)
+        csv = pd.read_csv('./data_other/dio_500.csv', header=None)
+        # csv = pd.read_pickle('./data_other/1ks_sample.pkl')
+        # csv = pd.read_pickle('./data_other/dio_500_sample.csv')
+        csv = csv.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                        11, 12, 13, 14, 15, 18, 19, 20]]
+        csv = csv.to_numpy()
+        # data = csv.to_numpy()
+        print("Loaded. Highlighting.")
+        # data = eeg_to_matrix(csv)
+        sliding_window(csv)
 
-    filename = sys.argv[1]
-    edf = EDFReader(filename)
-    edf.resample(500)
-    data = edf.data_to_standard_matrix()
-    sliding_window(data)
-    edf.visualize()
+    def testEDF():
+        filename = sys.argv[1]
+        edf = EDFReader(filename)
+        data = edf.data_to_standard_matrix()
+        # data = edf.data_to_resampled_matrix(500)
+        sliding_window(data)
+        # sliding_window(data, './stored_models/19eX200hz_1s.87acc.h5')
+        edf.visualize()
+
+    def visResample():
+        filename = sys.argv[1]
+        edf = EDFReader(filename)
+        
+        # edf.visualize()
+        # edf.resample(1000)
+        edf.visualize()
+
+    def diffEDFandCsv():
+        filename = sys.argv[1]
+        edf = EDFReader(filename)
+        csv = pd.read_pickle('./data_other/dio_500_sample.csv')
+        print(edf.to_data_frame())
+        print(csv)
+
+    # diffEDFandCsv()
+
+    # csv = pd.read_csv('./data_other/dio_500.csv', header=None)
+    # csv[:, :1000].to_pickle('./data_other/dio_500_sample.csv')
+
+    # testCSV()
+    testEDF()
+    # visResample()

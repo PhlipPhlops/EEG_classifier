@@ -62,7 +62,6 @@ def eeg_to_matrix(eeg):
         # Sort alphabetically by electrode label (just for consistent ordering)
         eeg = eeg.sort_values('Time', ascending=True)
     else:
-        print(eeg)
         # Assuming no electrode labels
         # Return a dead matrix to be caught by validator
         return np.asarray([])

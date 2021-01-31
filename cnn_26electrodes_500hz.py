@@ -11,10 +11,15 @@ from transformations import Transforms
 
 from load_data import load_eeg_data
 
+EEG_SHAPE = (19, 200)
+FILE_NAME = '{}eX{}hz_1s'.format(EEG_SHAPE[0], EEG_SHAPE[1])
+
 data, labels = load_eeg_data()
 
 # Fourier Transform all data
-data = Transforms().fourier_transform_all(data)
+trans = Transforms()
+data = trans.resample(data, 500, EEG_SHAPE[1])
+data = trans.fourier_transform_all(data)
 
 # Split data, (SPLIT_RATIO) training set, (1 - SPLIT_RATIO) testing set
 SPLIT_RATIO = 0.8
@@ -29,7 +34,6 @@ train_data = train_data.reshape(s[0], s[1], s[2], 1)
 s = test_data.shape
 test_data = test_data.reshape(s[0], s[1], s[2], 1)
 
-EEG_SHAPE = (19, 500)
 
 # Values are bounded between 1, -1 (as far as I've seen)
 # no need to normalize
@@ -103,6 +107,6 @@ eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
 accuracy = int(eval_metrics[1] * 100)
 
 print("====== Saving ======")
-save_file = f'./stored_models/19eX500hz_1s.{accuracy}acc.h5'
+save_file = f'./stored_models/{FILE_NAME}.{accuracy}acc.h5'
 CNN_model.save(save_file)
 print(f"Saving to {save_file}")

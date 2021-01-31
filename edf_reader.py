@@ -2,6 +2,7 @@
 into model interpretable data or act (say, visualize) on the data
 """
 import mne
+from scipy import signal
 
 class EDFReader():
     """Suit of methods for edf files"""
@@ -9,11 +10,11 @@ class EDFReader():
         self.raw_edf = mne.io.read_raw_edf(file_path)
         self.info = self.raw_edf.info
         self.sample_rate = self.info['sfreq']
-        self.raw_edf.resample(500)
+        print(f"This file has a sample rate of {self.sample_rate}Hz")
 
     def to_data_frame(self):
         """Returns a dataframe of (#electrodes)x(#timesteps)"""
-        return self.raw_edf.to_data_frame().transpose()
+        return self.raw_edf.to_data_frame(scalings={'eeg':1}).transpose()
 
     def visualize(self):
         """Plot to visual waveforms"""
@@ -23,6 +24,14 @@ class EDFReader():
         """Change the samplerate"""
         self.raw_edf.resample(sample_rate)
         self.sample_rate = self.raw_edf.info['sfreq']
+
+    def data_to_resampled_matrix(self, new_samplerate):
+        data = self.data_to_standard_matrix()
+        # new num samples = length of data * (new_samplerate / old_samplerate)
+        num_samples = int(data.shape[1] * (float(new_samplerate) / float(self.sample_rate)))
+        new_data = signal.resample(data, num_samples, axis=1)
+
+        return new_data
 
     def data_to_standard_matrix(self):
         """Returns data as a numpy matrix excluding rows from non-standard

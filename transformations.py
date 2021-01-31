@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.fftpack
 import scipy.stats
+import scipy.signal as signal
 
 class Transforms():
     """Data transformation methods"""
@@ -94,10 +95,80 @@ class Transforms():
         transformed = np.asarray(transformed)
         return transformed
 
+    def resample(self, data, samplerate, new_samplerate):
+        """Applied Scipy's use of fourier transforms to resample data
+        
+        data: an np list containing matrices of data
+        new_sr: int, new sample rate
+        """
+        print("===== RESAMPLING =====")
+        # new num samples = length of data * (new_samplerate / old_samplerate)
+        num_samples = int(data.shape[2] * (float(new_samplerate) / float(samplerate)))
+        new_data = signal.resample(data, num_samples, axis=2)
+        print(data.shape)
+        print(new_data.shape)
+        print("====/ RESAMPLING /====")
+
+        return new_data
+
 
 if __name__ == "__main__":
-    from data_500hz_1s.load_data import data, labels
+    import pandas as pd
+    from scipy import signal
+    
+    def testResample():
+        tra = Transforms()
+        
+        # Test import of large data
+        csv = pd.read_pickle('./data_other/1ks_sample.pkl')
+        data = csv.to_numpy()
+        print(data)
+        print(data.shape)
+        d2 = tra.resample(data, 3)
+        print(d2)
+        print(data.shape)
 
-    t = Transforms()
-    trans = t.entropy_transform(data)
-    print(trans)
+    def scipyEg():
+        x = np.linspace(0, 100, 20, endpoint=False)
+        y = np.cos(-x**2/6.0)
+
+        newsr = 400
+
+        f = signal.resample(y, newsr)
+        xnew = np.linspace(0, 100, newsr, endpoint=False)
+
+        import matplotlib.pyplot as plt
+        plt.plot(x, y, 'go-', xnew, f, '.-')
+        plt.legend(['data', 'resampled'], loc='best')
+        plt.show()
+
+    def scipyEgWMyData():
+        # Load data
+        csv = pd.read_pickle('./data_other/1ks_sample.pkl')
+        data = csv.to_numpy()
+
+        num_samples = 40
+        new_samplerate = 400
+        # num points to display
+        nptd = 100
+        
+        d = data[:, :num_samples]
+
+        x = np.linspace(0, nptd, num_samples, endpoint=False)
+        y = d[0]
+
+        f = signal.resample(d, new_samplerate, axis=1)
+        # print(d[0])
+        # print(f[0])
+        f0 = f[0]
+        xnew = np.linspace(0, nptd, new_samplerate, endpoint=False)
+        print('shapes')
+        print(d.shape)
+        print(f.shape)
+
+        import matplotlib.pyplot as plt
+        plt.plot(x, y, 'g-', xnew, f0, '-')
+        plt.legend(['data', 'resampled'], loc='best')
+        plt.show()
+
+    scipyEgWMyData()
