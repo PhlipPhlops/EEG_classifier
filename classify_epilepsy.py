@@ -102,11 +102,11 @@ if __name__ == "__main__":
     def testEDF():
         filename = sys.argv[1]
         edf = EDFReader(filename)
-        data = edf.data_to_standard_matrix()
-        # data = edf.data_to_resampled_matrix(500)
+        # data = edf.data_to_standard_matrix()
+        data = edf.data_to_resampled_matrix(500)
         sliding_window(data)
         # sliding_window(data, './stored_models/19eX200hz_1s.87acc.h5')
-        edf.visualize()
+        # edf.visualize()
 
     def visResample():
         filename = sys.argv[1]

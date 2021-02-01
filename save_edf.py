@@ -101,13 +101,11 @@ def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False):
         f.setSignalHeaders(channel_info)
         f.setStartdatetime(date)
         f.writeSamples(data_list)
-        # Write available annotations to file
         for annotation in mne_raw.annotations:
-          f.writeAnnotation(
-            annotation['onset'],
-            annotation['duration'],
-            annotation['description']
-          )
+            onset = annotation['onset']
+            duration = annotation['duration']
+            description = annotation['description']
+            f.writeAnnotation(onset, duration, description)
     except Exception as e:
         print(e)
         return False

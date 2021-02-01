@@ -1,7 +1,8 @@
 """Trains a convolutional neural network to separate Epilepsy events
 from Non-Epilepsy events
 
-Trains on 1s events at a 500hz sample rate with 26 electrodes"""
+Trains on 1s events at a 500hz sample rate with 19 international
+standard electrodes"""
 import tensorflow as tf
 from tensorflow.keras import layers, models, metrics
 import matplotlib.pyplot as plt
