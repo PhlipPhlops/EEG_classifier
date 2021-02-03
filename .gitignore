@@ -1,0 +1,5 @@
+data*/
+.ignorable/
+outputs/
+.vscode/
+__pycache__/

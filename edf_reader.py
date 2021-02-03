@@ -16,7 +16,7 @@ class EDFReader():
         """Returns a dataframe of (#electrodes)x(#timesteps)"""
         return self.raw_edf.to_data_frame(scalings={'eeg':1}).transpose()
 
-    def visualize(self):
+    def plot(self):
         """Plot to visual waveforms"""
         self.raw_edf.plot(block=True)
 
@@ -52,3 +52,9 @@ class EDFReader():
         # Would sort alphabetically for consistency, but assuming EDF has its own consistency
 
         return eeg.to_numpy()
+
+if __name__ == "__main__":
+    import sys
+    filename = sys.argv[1]
+    edf = EDFReader(filename)
+    edf.plot()

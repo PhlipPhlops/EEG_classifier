@@ -72,7 +72,7 @@ class EpilepsyClassifier():
         window_start = positive_indices[0]
         last_i = positive_indices[0]
         for i in positive_indices[1:]:
-            if i - last_i > step_width:
+            if i - last_i > window_size:
                 onset = i2sec(window_start)
                 duration = (i2sec(last_i) - onset) + i2sec(window_size)
 
@@ -95,6 +95,7 @@ class EpilepsyClassifier():
         data = edf.data_to_resampled_matrix(self.sample_rate)
         raw = edf.raw_edf
         
+        # The meat of the classification
         onsets, durations = self._sliding_window(data)
         # Save annotations to edf
         annotations = mne.Annotations(onsets, durations, "discharge")
@@ -113,3 +114,4 @@ if __name__ == "__main__":
     edf = classifier.classify_on_edf(filename, save_file=save_name)
     print(edf.annotations)
     edf.plot()
+    print("plotted")
