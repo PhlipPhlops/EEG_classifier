@@ -10,16 +10,17 @@ import pandas as pd
 import numpy as np
 from transformations import Transforms
 
-from load_data import load_eeg_data
+from load_data import load_training_data
 
-EEG_SHAPE = (19, 200)
-FILE_NAME = '{}eX{}hz_1s'.format(EEG_SHAPE[0], EEG_SHAPE[1])
+# Neurogram trains on .5 second chunks at 500hz
+# across 19 standard electrodes
+EEG_SHAPE = (19, 250)
+FILE_NAME = 'neurogram_0.5.1'
 
-data, labels = load_eeg_data()
+data, labels = load_training_data()
 
 # Fourier Transform all data
 trans = Transforms()
-data = trans.resample(data, 500, EEG_SHAPE[1])
 data = trans.fourier_transform_all(data)
 
 # Split data, (SPLIT_RATIO) training set, (1 - SPLIT_RATIO) testing set
@@ -48,7 +49,7 @@ print(test_labels.shape)
 
 def define_model():
     """Defines a joint convolutional net & fully connected neural net
-    for the purposes of classifying 19(electrode)x500(sample@500hz) EEG data
+    for the purposes of classifying 19(electrode)x250(sample@500hz) EEG data
     as an epileptic event"""
     model = models.Sequential()
     ## Convolutional network for feature extraction
@@ -82,7 +83,7 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=250,
+    model_history = model.fit(train_X, train_Y, epochs=350,
                         validation_data=(test_X, test_Y))
     return model_history
 
