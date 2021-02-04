@@ -43,12 +43,15 @@ class EDFReader():
         ]
         # Different labels for the same electrodes
         KEPT_ELECTRODES.extend(['T7', 'P7', 'T8', 'P8'])
+        # # HACK: EXTENDING FOR DANI DELAY
+        # KEPT_ELECTRODES.extend(['A1', 'A2'])
+
         # Electrodes labels look like "EEG Fp1", apply for string matching
         kept_e = [el_label.upper() for el_label in KEPT_ELECTRODES]
 
         eeg = self.to_data_frame()
         # Drop all electrodes aside from international standard
-        eeg = eeg[eeg.apply(lambda row: any(label in row.name for label in kept_e), axis=1)]
+        eeg = eeg[eeg.apply(lambda row: any(label in row.name.upper() for label in kept_e), axis=1)]
         # Would sort alphabetically for consistency, but assuming EDF has its own consistency
 
         return eeg.to_numpy()
@@ -57,4 +60,5 @@ if __name__ == "__main__":
     import sys
     filename = sys.argv[1]
     edf = EDFReader(filename)
+    print(edf.data_to_standard_matrix().shape)
     edf.plot()

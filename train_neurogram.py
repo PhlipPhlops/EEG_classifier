@@ -5,6 +5,7 @@ Trains on 1s events at a 500hz sample rate with 19 international
 standard electrodes"""
 import tensorflow as tf
 from tensorflow.keras import layers, models, metrics
+from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -15,9 +16,10 @@ from load_data import load_training_data
 # Neurogram trains on .5 second chunks at 500hz
 # across 19 standard electrodes
 EEG_SHAPE = (19, 250)
-FILE_NAME = 'neurogram_0.5.1'
+FILE_NAME = 'neurogram_0.5.2'
+NUM_EPOCHS = 300
 
-data, labels = load_training_data()
+data, labels = load_training_data(balance_data=False)
 
 # Fourier Transform all data
 trans = Transforms()
@@ -36,6 +38,10 @@ train_data = train_data.reshape(s[0], s[1], s[2], 1)
 s = test_data.shape
 test_data = test_data.reshape(s[0], s[1], s[2], 1)
 
+# balance class weights
+_, counts = np.unique(train_labels, return_counts=True)
+class_weight = {0: float(counts[1])/counts[0], 1: 1.}
+print(f"Weights: {class_weight}")
 
 # Values are bounded between 1, -1 (as far as I've seen)
 # no need to normalize
@@ -80,10 +86,17 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
         metrics.FalsePositives(),
         metrics.FalseNegatives()
     ]
+    chkpt_file = f'./stored_models/{FILE_NAME}.h5'
+    callbacks = [
+        ModelCheckpoint(chkpt_file, save_best_only=True, monitor='val_auc', mode='max')
+    ]
     model.compile(optimizer='adam',
                 loss=tf.keras.losses.BinaryCrossentropy(),
                 metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y, epochs=350,
+    model_history = model.fit(train_X, train_Y,
+                        class_weight=class_weight,
+                        epochs=NUM_EPOCHS,
+                        callbacks=callbacks,
                         validation_data=(test_X, test_Y))
     return model_history
 
@@ -106,6 +119,7 @@ plot_history(history)
 
 print("====== Evaluating ======")
 eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
+print(eval_metrics)
 accuracy = int(eval_metrics[1] * 100)
 
 print("====== Saving ======")

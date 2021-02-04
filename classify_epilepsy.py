@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import sys
 from tensorflow import keras
-from load_data import load_eeg_data
 from transformations import Transforms
 from scipy.signal import resample
 
@@ -23,11 +22,11 @@ class EpilepsyClassifier():
         model_path: path to saved model
         sample_rate: frequency at which to base classifications
         """
-        self.sample_rate=500
+        self.sample_rate = sample_rate
         self.model = keras.models.load_model(model_path)   
 
     def _sliding_window(self, data, positive_threshold=0.5, sample_rate=500,
-                        window_size=500, step_width=200):
+                        window_size=250, step_width=200):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
 
@@ -48,9 +47,17 @@ class EpilepsyClassifier():
             """convert index (a timestamp at some {samplerate}Hz) to seconds"""
             return float(i/sample_rate)
 
+        print("Classifying, hold your horses.")
+        percent_step = .10
+
         # Slide window across data
+        # Collect positive indices and prediction confidence
         positive_indices = []
+        prediction_confs = []
         for i in range(0, data.shape[1]-window_size, step_width):
+            if float(i) / data.shape[1] >= percent_step:
+                print(f"{percent_step*100}%: {i}/{data.shape[1]}")
+                percent_step += .10
             # Convert window into a "list" (one element) of windows
             # needs to be in a list for the following transform
             window = np.array([data[:, i:(i+window_size)]])
@@ -65,40 +72,58 @@ class EpilepsyClassifier():
 
             if p > positive_threshold:
                 positive_indices.append(i)
+                prediction_confs.append(p)
         
         # parse positive indices for onsets and durations
         onsets = []
         durations = []
-        window_start = positive_indices[0]
-        last_i = positive_indices[0]
-        for i in positive_indices[1:]:
-            if i - last_i > window_size:
-                onset = i2sec(window_start)
-                duration = (i2sec(last_i) - onset) + i2sec(window_size)
+        descriptions = []
 
-                onsets.append(onset)
-                durations.append(duration)
+        if len(positive_indices) > 0:
+            # j is an index of this list
+            # i is the index of the original data
+            ws_j = 0
+            last_i_j = 0
+            for j in range(1, len(positive_indices[1:])):
+                window_start = positive_indices[ws_j]
+                last_i = positive_indices[last_i_j]
+                i = positive_indices[j]
+                if i - last_i > window_size:
+                    onset = i2sec(window_start)
+                    duration = (i2sec(last_i) - onset) + i2sec(window_size)
+                    
+                    if ws_j == last_i_j:
+                        prob = prediction_confs[last_i_j]
+                    else:
+                        prob = max(prediction_confs[ws_j:last_i_j])
+                    description = "{:.2f}".format(prob) + "pc"
 
-                window_start = i
-            last_i = i
+                    onsets.append(onset)
+                    durations.append(duration)
+                    descriptions.append(description)
 
-        return onsets, durations
+                    ws_j = j
+                last_i_j = j
+
+        return onsets, durations, descriptions
 
 
-    def classify_on_edf(self, filename, save_file=''):
+    def classify_on_edf(self, file_name, save_file=''):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
 
         data: np matrix of (#electrodes)x(#timesteps)
         """ 
-        edf = EDFReader(filename)
+        print("=======")
+        print(file_name)
+        edf = EDFReader(file_name)
         data = edf.data_to_resampled_matrix(self.sample_rate)
         raw = edf.raw_edf
         
         # The meat of the classification
-        onsets, durations = self._sliding_window(data)
+        onsets, durations, descriptions = self._sliding_window(data)
         # Save annotations to edf
-        annotations = mne.Annotations(onsets, durations, "discharge")
+        annotations = mne.Annotations(onsets, durations, descriptions)
         raw.set_annotations(annotations)
         if save_file != '':
             write_edf(raw, save_file, overwrite=True)
@@ -109,9 +134,8 @@ class EpilepsyClassifier():
 
 if __name__ == "__main__":
     filename = sys.argv[1]
-    save_name = filename[:-4] + '_annotated.edf'
-    classifier = EpilepsyClassifier('./stored_models/19eX500hz_1s.95acc.h5')
+    save_name = filename[:-4] + '_0.5.2.edf'
+    classifier = EpilepsyClassifier('./stored_models/neurogram_0.5.2.h5')
     edf = classifier.classify_on_edf(filename, save_file=save_name)
     print(edf.annotations)
-    edf.plot()
-    print("plotted")
+    print(f"Saved to {save_name}")
