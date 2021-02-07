@@ -19,7 +19,7 @@ app = Flask(__name__,
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 # Enable sockets
-socketio = SocketIO(app)
+# socketio = SocketIO(app)
 
 @app.route('/')
 def index():
@@ -30,6 +30,7 @@ def classify_on_edf(filepath):
     """Runs the (long) method to classify epileptic
     discharges on EDF dta
     """
+    print("MADEIHDIU(OHN")
     savepath = filepath[:-4] + '_ng-annotated.edf'
     # Get path to current file so this can be called from anywhere
     parent_folder_path = '/'.join((os.path.abspath(__file__)).split('/')[:-2])
@@ -46,15 +47,10 @@ def upload_edf():
     f = request.files['file']
     filepath = '/tmp/' + f.filename
     f.save(filepath)
-    # Classify (the meat)
-    return_file_path = filepath
-    # return_file_path = classify_on_edf(filepath)
-    # # Package up response
-    # resp = make_response("File classification successful")
-    # resp.headers['']
+    save_file = classify_on_edf(filepath)
 
-    return send_file(return_file_path, as_attachment=True)
+    return save_file
 
-if __name__ == '__main__':
-    # Starting this way for socket support
-    socketio.run(app)
+# if __name__ == '__main__':
+#     # Starting this way for socket support
+#     socketio.run(app)

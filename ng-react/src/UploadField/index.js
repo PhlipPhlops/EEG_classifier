@@ -2,14 +2,28 @@ import React from 'react';
 import axios, { post } from 'axios';
 import './index.css';
 
+import LinearProgress from '@material-ui/core/LinearProgress';
 import file_upload from '../static/file_upload.svg';
+import file_download from '../static/file_download.svg';
 
+const statusEnum = Object.freeze({
+  "upload": 0,
+  "loading": 1,
+  "download": 2
+})
+
+const buttonText = Object.freeze({
+  0: 'Upload your .edf file here',
+  1: 'Classifying, this will take a minute...',
+  2: 'Done! Download your annotated .edf here'
+})
 
 class UploadField extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      file: null
+      file: null,
+      status: statusEnum.upload
     }
     this.onChange = this.onChange.bind(this)
     this.fileUpload = this.fileUpload.bind(this)
@@ -17,7 +31,9 @@ class UploadField extends React.Component {
   }
 
   triggerInputFile() {
-    this.fileInput.click()
+    if (this.state.status == statusEnum.upload) {
+      this.fileInput.click()
+    }
   }
 
   fileUpload(file) {
@@ -34,10 +50,19 @@ class UploadField extends React.Component {
   }
 
   onChange(e) {
-    this.setState({file: e.target.files[0]})
-    this.fileUpload(this.state.file).then((response) => {
-      console.log(response.data);
+    // Immediately upload file on selection
+    this.setState({
+      file: e.target.files[0],
+      status: statusEnum.loading
     })
+    this.fileUpload(this.state.file)
+      .then((response) => {
+        this.setState({status: statusEnum.download})
+        console.log(response.data);
+      })
+      .catch((err) => {
+        console.log(err)
+      })
   }
 
   render() {
@@ -48,16 +73,14 @@ class UploadField extends React.Component {
           id="fileUpload"
           onChange={this.onChange}
         />
-
-        <span className="text">Upload your .edf file here</span>
-        {/* <div className="divider" /> */}
-        <img className="uploadButton" src={file_upload} />
-          {/* <form onSubmit={this.onFormSubmit}>
-            <input type="file"
-                id="file_upload"
-                onChange={this.onChange}/>
-            <button type="submit">Upload</button>
-          </form> */}
+        <LinearProgress />
+        <span className="text">{buttonText[this.state.status]}</span>
+        {
+          this.state.status == statusEnum.loading
+          ? <LinearProgress />
+          : <img className="uploadButton" src={
+              this.state.status == statusEnum.upload ? file_upload : file_download} />
+        }
       </div>
     )
   }
