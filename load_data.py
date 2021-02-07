@@ -14,8 +14,8 @@ import os
 import random
 import numpy as np
 import pandas as pd
-from edf_reader import EDFReader
 from scipy import signal
+from .edf_reader import EDFReader
 
 # International standard; 19 electrodes
 # Expecting .5 second epoch at 500hz

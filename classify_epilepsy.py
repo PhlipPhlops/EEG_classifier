@@ -6,14 +6,14 @@ Loads data from a csv and passes a sliding window over it
 import pandas as pd
 import numpy as np
 import sys
+import mne
 from tensorflow import keras
-from transformations import Transforms
 from scipy.signal import resample
 
-import mne
-from edf_reader import EDFReader
-from load_data import eeg_to_matrix
-from save_edf import write_edf
+from .transformations import Transforms
+from .edf_reader import EDFReader
+from .load_data import eeg_to_matrix
+from .save_edf import write_edf
 
 class EpilepsyClassifier():
     def __init__(self, model_path, sample_rate=500):

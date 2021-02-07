@@ -9,9 +9,9 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from transformations import Transforms
 
-from load_data import load_training_data
+from .transformations import Transforms
+from .load_data import load_training_data
 
 # Neurogram trains on .5 second chunks at 500hz
 # across 19 standard electrodes
