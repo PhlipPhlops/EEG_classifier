@@ -13,18 +13,25 @@ from scipy.signal import resample
 from ..transformations import Transforms
 from ..edf_reader import EDFReader, write_edf
 
-class EpilepsyClassifier():
+
+class EpilepsyClassifier:
     def __init__(self, model_path, sample_rate=500):
         """Loads clasifer model
-        
+
         model_path: path to saved model
         sample_rate: frequency at which to base classifications
         """
         self.sample_rate = sample_rate
         self.model = keras.models.load_model(model_path)
 
-    def _sliding_window(self, data, positive_threshold=0.5, sample_rate=500,
-                        window_size=500, step_width=200):
+    def _sliding_window(
+        self,
+        data,
+        positive_threshold=0.5,
+        sample_rate=500,
+        window_size=500,
+        step_width=200,
+    ):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
 
@@ -34,7 +41,7 @@ class EpilepsyClassifier():
         window_size: size of the window to be passed into the model
             must match the input shape that the model is expecting
         step_width: number of timesteps for the window to travel each iteration
-        
+
         returns: onsets, durations
             where onsets is a list reporting where an annotation starts
             and durations reports duration of index-corresponding annotation
@@ -43,22 +50,22 @@ class EpilepsyClassifier():
 
         def i2sec(i):
             """convert index (a timestamp at some {samplerate}Hz) to seconds"""
-            return float(i/sample_rate)
+            return float(i / sample_rate)
 
         print("Classifying, hold your horses.")
-        percent_step = .10
+        percent_step = 0.10
 
         # Slide window across data
         # Collect positive indices and prediction confidence
         positive_indices = []
         prediction_confs = []
-        for i in range(0, data.shape[1]-window_size, step_width):
+        for i in range(0, data.shape[1] - window_size, step_width):
             if float(i) / data.shape[1] >= percent_step:
                 print(f"{int(percent_step*100)}%: {i}/{data.shape[1]}")
-                percent_step += .10
+                percent_step += 0.10
             # Convert window into a "list" (one element) of windows
             # needs to be in a list for the following transform
-            window = np.array([data[:, i:(i+window_size)]])
+            window = np.array([data[:, i : (i + window_size)]])
             transformed = Transforms().fourier_transform_all(window)
             # Reshape for predictor (n_images=1, x_shape, y_shape, channels)
             s = transformed.shape
@@ -71,7 +78,7 @@ class EpilepsyClassifier():
             if p > positive_threshold:
                 positive_indices.append(i)
                 prediction_confs.append(p)
-        
+
         # parse positive indices for onsets and durations
         onsets = []
         durations = []
@@ -89,7 +96,7 @@ class EpilepsyClassifier():
                 if i - last_i > window_size:
                     onset = i2sec(window_start)
                     duration = (i2sec(last_i) - onset) + i2sec(window_size)
-                    
+
                     if ws_j == last_i_j:
                         prob = prediction_confs[last_i_j]
                     else:
@@ -105,25 +112,26 @@ class EpilepsyClassifier():
 
         return onsets, durations, descriptions
 
-
-    def classify_on_edf(self, file_name, save_file='', window_size=500):
+    def classify_on_edf(self, file_name, save_file="", window_size=500):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
 
         data: np matrix of (#electrodes)x(#timesteps)
-        """ 
+        """
         print("=======")
         print(file_name)
         edf = EDFReader(file_name)
         data = edf.data_to_resampled_matrix(self.sample_rate)
         raw = edf.raw_edf
-        
+
         # The meat of the classification
-        onsets, durations, descriptions = self._sliding_window(data, window_size=window_size)
+        onsets, durations, descriptions = self._sliding_window(
+            data, window_size=window_size
+        )
         # Save annotations to edf
         annotations = mne.Annotations(onsets, durations, descriptions)
         raw.set_annotations(annotations)
-        if save_file != '':
+        if save_file != "":
             write_edf(raw, save_file, overwrite=True)
 
         return raw

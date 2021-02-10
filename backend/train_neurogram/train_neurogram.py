@@ -16,7 +16,7 @@ from .load_data import load_training_data
 # Neurogram trains on .5 second chunks at 500hz
 # across 19 standard electrodes
 EEG_SHAPE = (19, 500)
-FILE_NAME = 'neurogram_1.0.3'
+FILE_NAME = "neurogram_1.0.3"
 NUM_EPOCHS = 250
 
 data, labels = load_training_data(balance_data=False)
@@ -40,18 +40,19 @@ test_data = test_data.reshape(s[0], s[1], s[2], 1)
 
 # balance class weights
 _, counts = np.unique(train_labels, return_counts=True)
-class_weight = {0: float(counts[1])/counts[0], 1: 1.}
+class_weight = {0: float(counts[1]) / counts[0], 1: 1.0}
 print(f"Weights: {class_weight}")
 
 # Values are bounded between 1, -1 (as far as I've seen)
 # no need to normalize
 
-print('Train shapes: data, labels')
+print("Train shapes: data, labels")
 print(train_data.shape)
 print(train_labels.shape)
-print('Test shapes: data, labels')
+print("Test shapes: data, labels")
 print(test_data.shape)
 print(test_labels.shape)
+
 
 def define_model():
     """Defines a joint convolutional net & fully connected neural net
@@ -59,8 +60,11 @@ def define_model():
     as an epileptic event"""
     model = models.Sequential()
     ## Convolutional network for feature extraction
-    model.add(layers.Conv2D(filters=20, kernel_size=(3, 3),
-                            input_shape=(EEG_SHAPE[0], EEG_SHAPE[1], 1)))
+    model.add(
+        layers.Conv2D(
+            filters=20, kernel_size=(3, 3), input_shape=(EEG_SHAPE[0], EEG_SHAPE[1], 1)
+        )
+    )
     model.add(layers.LeakyReLU())
     # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
     # model.add(layers.Conv2D(filters=10, kernel_size=(3, 3), activation='relu'))
@@ -70,10 +74,11 @@ def define_model():
     model.add(layers.Flatten())
     model.add(layers.Dense(24))
     model.add(layers.LeakyReLU())
-    model.add(layers.Dense(1, activation='sigmoid'))
+    model.add(layers.Dense(1, activation="sigmoid"))
 
     model.summary()
     return model
+
 
 def train_model(model, train_X, train_Y, test_X, test_Y):
     """Compiles then fits model to data"""
@@ -84,45 +89,49 @@ def train_model(model, train_X, train_Y, test_X, test_Y):
         metrics.TruePositives(),
         metrics.TrueNegatives(),
         metrics.FalsePositives(),
-        metrics.FalseNegatives()
+        metrics.FalseNegatives(),
     ]
-    chkpt_file = f'../stored_models/{FILE_NAME}.h5'
+    chkpt_file = f"../stored_models/{FILE_NAME}.h5"
     callbacks = [
-        ModelCheckpoint(chkpt_file, save_best_only=True, monitor='val_auc', mode='max')
+        ModelCheckpoint(chkpt_file, save_best_only=True, monitor="val_auc", mode="max")
     ]
-    model.compile(optimizer='adam',
-                loss=tf.keras.losses.BinaryCrossentropy(),
-                metrics=['accuracy', *other_metrics])
-    model_history = model.fit(train_X, train_Y,
-                        class_weight=class_weight,
-                        epochs=NUM_EPOCHS,
-                        callbacks=callbacks,
-                        validation_data=(test_X, test_Y))
+    model.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.BinaryCrossentropy(),
+        metrics=["accuracy", *other_metrics],
+    )
+    model_history = model.fit(
+        train_X,
+        train_Y,
+        class_weight=class_weight,
+        epochs=NUM_EPOCHS,
+        callbacks=callbacks,
+        validation_data=(test_X, test_Y),
+    )
     return model_history
+
 
 def plot_history(history):
     """Plots training and testing accuracy vs epoch"""
-    plt.plot(history.history['accuracy'], label='accuracy')
-    plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
+    plt.plot(history.history["accuracy"], label="accuracy")
+    plt.plot(history.history["val_accuracy"], label="val_accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
     plt.ylim([0.5, 1])
-    plt.legend(loc='lower right')
+    plt.legend(loc="lower right")
     plt.show()
 
+
 CNN_model = define_model()
-history = train_model(
-                    CNN_model,
-                    train_data, train_labels,
-                    test_data, test_labels)
+history = train_model(CNN_model, train_data, train_labels, test_data, test_labels)
 plot_history(history)
 
 print("====== Evaluating ======")
-eval_metrics = CNN_model.evaluate(test_data,  test_labels, verbose=2)
+eval_metrics = CNN_model.evaluate(test_data, test_labels, verbose=2)
 print(eval_metrics)
 accuracy = int(eval_metrics[1] * 100)
 
 print("====== Saving ======")
-save_file = f'../stored_models/{FILE_NAME}.{accuracy}acc.h5'
+save_file = f"../stored_models/{FILE_NAME}.{accuracy}acc.h5"
 CNN_model.save(save_file)
 print(f"Saving to {save_file}")

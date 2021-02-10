@@ -6,7 +6,8 @@ import scipy.fftpack
 import scipy.stats
 import scipy.signal as signal
 
-class Transforms():
+
+class Transforms:
     """Data transformation methods"""
 
     def entropy_transform(self, data):
@@ -59,7 +60,7 @@ class Transforms():
             transformed.append(d_transformed)
         transformed = np.asarray(transformed)
         return transformed
-        
+
     def hellohello_transform(self, data, window_size=64, step=14):
         """Transform based on notes provided by Daniele in Telegram post
         captioned "hello hello"
@@ -68,7 +69,7 @@ class Transforms():
 
         Stack fft from windows horizontally into row chunks
         Stack those row chunks from all 3 electrodes vertically
-        
+
         data: list of eeg scan matrices
         """
         # Electrodes C3, CZ, C4 (assuming 26 electrode EEG)
@@ -98,7 +99,7 @@ class Transforms():
 
     def resample(self, data, samplerate, new_samplerate):
         """Applied Scipy's use of fourier transforms to resample data
-        
+
         data: an np list containing matrices of data
         new_sr: int, new sample rate
         """
@@ -121,28 +122,26 @@ if __name__ == "__main__":
     edf = EDFReader(filename)
     data = edf.data_to_resampled_matrix(500)
 
-
-
     window_size = 500
     step_width = 250
     transformed = []
 
     slic = 400
-    window = np.array(data[:, slic:(slic + window_size)])
+    window = np.array(data[:, slic : (slic + window_size)])
 
-    fig= plt.figure(figsize=(16,12), dpi=80)
+    fig = plt.figure(figsize=(16, 12), dpi=80)
     ax = fig.subplots()
 
     # set up plot parameters
     # ax.set_ylim(0, 0.02)
-    line, = ax.plot([],[],'-')
+    (line,) = ax.plot([], [], "-")
 
     def plot_trans(i):
-        j = 10*(5 + int(i/19))
+        j = 10 * (5 + int(i / 19))
         ax.set_xlim(0, j)
         i = i % 19
-        
-        spacing = 1./500 ## 1 over sample rate
+
+        spacing = 1.0 / 500  ## 1 over sample rate
 
         d = scipy.fftpack.fft(window[i], 500)
         d = np.fft.fftfreq(d.size, d=spacing)
@@ -152,7 +151,7 @@ if __name__ == "__main__":
         # print(x)
         x = range(len(d))
         line.set_data(x, d)
-        return line,
+        return (line,)
 
     anim = FuncAnimation(fig, plot_trans, frames=10000, interval=25)
     plt.show()

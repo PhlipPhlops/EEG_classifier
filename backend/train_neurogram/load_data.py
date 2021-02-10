@@ -23,39 +23,63 @@ from ..edf_reader import EDFReader
 DESIRED_SAMPLE_RATE = 500
 EXPECTED_SHAPE = (19, 500)
 
+
 def eeg_to_matrix(eeg):
     """Excludes non-standard electrodes, leaving 19,
     Trims the expected unnecessary columns from a loaded eeg .csv
     and returns as a numpy matrix shape (19 X width)
     """
     KEPT_ELECTRODES = [
-        'Fp1', 'F3', 'F7', 'C3', 'T3', 'P3', 'T5', 'O1', 'Pz',
-        'Fp2', 'Fz', 'F4', 'F8', 'Cz', 'C4', 'T4', 'P4', 'T6', 'O2'
+        "Fp1",
+        "F3",
+        "F7",
+        "C3",
+        "T3",
+        "P3",
+        "T5",
+        "O1",
+        "Pz",
+        "Fp2",
+        "Fz",
+        "F4",
+        "F8",
+        "Cz",
+        "C4",
+        "T4",
+        "P4",
+        "T6",
+        "O2",
     ]
     # Different labels for the same electrodes
-    KEPT_ELECTRODES.extend(['T7', 'P7', 'T8', 'P8'])
+    KEPT_ELECTRODES.extend(["T7", "P7", "T8", "P8"])
     # Electrodes labels look like "EEG Fp1", apply for string matching
     kept_labels = [el_label.upper() for el_label in KEPT_ELECTRODES]
 
     # Drop all electrodes aside from international standard
     # WARNING: Not safe to assume Time is a column on all .edf imports
-    if 'Time' in eeg:
-        eeg = eeg[eeg.apply(lambda row: any(label in row[0].upper() for label in kept_labels), axis=1)]
-        
+    if "Time" in eeg:
+        eeg = eeg[
+            eeg.apply(
+                lambda row: any(label in row[0].upper() for label in kept_labels),
+                axis=1,
+            )
+        ]
+
         # Sort alphabetically by electrode label (just for consistent ordering)
         ## Disabled since behavior is not replicated in EDFs
-        #eeg = eeg.sort_values('Time', ascending=True)
+        # eeg = eeg.sort_values('Time', ascending=True)
     else:
         # Assuming no electrode labels
         # Return a dead matrix to be caught by validator
         return np.asarray([])
 
     # Drop unnamed last column
-    eeg = eeg.drop(eeg.columns[len(eeg.columns)-1], axis=1)
+    eeg = eeg.drop(eeg.columns[len(eeg.columns) - 1], axis=1)
 
     # Drop electrode labels
     eeg = eeg.drop(eeg.columns[0], axis=1)
     return eeg.to_numpy()
+
 
 def validate_matrix(matrix, on_err):
     """Returns true (valid) if matrix contains expected
@@ -97,20 +121,20 @@ def chop_into_windows(data, window_width):
     window_count = int(data.shape[1] / window_width)
     for i in range(0, window_count):
         split_i = i * window_width
-        window_list.append(data[:, split_i:(split_i+window_width)])
+        window_list.append(data[:, split_i : (split_i + window_width)])
     return window_list
 
 
 def data_from_csv(file_path, csv_sample_rate):
     """Loads .csv into a list of .5 second chunks
-       Upsamples the data to 500Hz before cutting
-       Returns a list of matrices
+    Upsamples the data to 500Hz before cutting
+    Returns a list of matrices
     """
-    eeg = pd.read_csv(file_path, engine='python')
+    eeg = pd.read_csv(file_path, engine="python")
     data_matrix = eeg_to_matrix(eeg)
 
     def validation_err():
-        print(f"Validation failed: {file_path}", end=' || ')
+        print(f"Validation failed: {file_path}", end=" || ")
         print(f"Expected shape: ({EXPECTED_SHAPE[0]}, _), got {data_matrix.shape}")
 
     if not validate_matrix(data_matrix, validation_err):
@@ -129,8 +153,8 @@ def data_from_csv(file_path, csv_sample_rate):
 
 def data_from_edf(file_path):
     """Loads .edf into a list of .5 second chunks,
-       Resamples to 500Hz before cutting
-       Returns a list of matrices
+    Resamples to 500Hz before cutting
+    Returns a list of matrices
     """
     edf = EDFReader(file_path)
     data_matrix = edf.data_to_resampled_matrix(DESIRED_SAMPLE_RATE)
@@ -154,8 +178,8 @@ def load_from_folder(folder_path, label):
     """
     matrix_list = []
     # Get path to current file so this can be called from anywhere
-    this_file_path = '/'.join((os.path.abspath(__file__)).split('/')[:-1])
-    curr_dir_path = this_file_path + '/' + folder_path
+    this_file_path = "/".join((os.path.abspath(__file__)).split("/")[:-1])
+    curr_dir_path = this_file_path + "/" + folder_path
     # grab subdirectory paths in the current directory
     # [1:] excludes the current './' directory
     directory_names = [x[0] for x in os.walk(curr_dir_path)][1:]
@@ -167,12 +191,12 @@ def load_from_folder(folder_path, label):
 
         for file_name in os.listdir(directory):
             # sees every file in the parent folder
-            file_path = directory + '/' + file_name
+            file_path = directory + "/" + file_name
 
             loaded_data = []
-            if file_name.endswith('.csv'):
+            if file_name.endswith(".csv"):
                 loaded_data = data_from_csv(file_path, samplerate)
-            elif file_name.endswith('.edf'):
+            elif file_name.endswith(".edf"):
                 loaded_data = data_from_edf(file_path)
             matrix_list.extend(loaded_data)
     # Generate labels and return
@@ -188,9 +212,9 @@ def load_training_data(shuffle_data=True, balance_data=True):
     if balance_data is True, will throw out most non-epileptic events
     at random, keeping only as many as there are epileptic event
     """
-    data_dir = '../data/data_training/'
-    e_positive_dir = data_dir + 'epileptic'
-    e_negative_dir = data_dir + 'non_epileptic'
+    data_dir = "../data/data_training/"
+    e_positive_dir = data_dir + "epileptic"
+    e_negative_dir = data_dir + "non_epileptic"
 
     print("====== Loading data ======")
     print(f"Loading from ./{data_dir}")
@@ -227,6 +251,7 @@ def load_training_data(shuffle_data=True, balance_data=True):
     print("=====/ Loading data /=====")
 
     return matrix_list, label_list
+
 
 if __name__ == "__main__":
     m, l = load_training_data()
