@@ -17,10 +17,10 @@ Disclaimer:
       file_type: e.g. BDF+ dmin, dmax =- [-8388608, 8388607]
 """
 
-import pyedflib  # pip install pyedflib
 from datetime import datetime
 import mne
 import os
+import pyedflib  # pip install pyedflib
 
 
 def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False):

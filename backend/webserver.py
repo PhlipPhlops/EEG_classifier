@@ -5,25 +5,23 @@ $ flask run
 """
 import os
 from flask import Flask
-from flask import render_template, request, send_file, make_response
+from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO
 from .classify_epilepsy import EpilepsyClassifier
 
-# Serves from the ./ng-react/build folder
-# Remember to rebuild on frontend changes
-app = Flask(__name__, static_folder="../ng-react/build", static_url_path="/")
-# Enable pesky CORS
-cors = CORS(app)
-app.config["CORS_HEADERS"] = "Content-Type"
+## Configure Flask app
+app = Flask("backend", static_folder="../react/build", template_folder="../react/build")
 app.config["SECRET_KEY"] = "dev"
 
-
-@app.route("/")
-def index():
-    """Serve the main react app"""
-    print("Serve")
-    return app.send_static_file("index.html")
+## Setup CORS headers
+# app.config["CORS_HEADERS"] = ["Content-Type", "Authorization"]
+# app.config["CORS_ORIGINS"] = "http://localhost:3000/"
+cors = CORS(app)
+## To return the following headers
+# Access-Control-Allow-Origin:  http://127.0.0.1:3000
+# Access-Control-Allow-Methods: POST
+# Access-Control-Allow-Headers: Content-Type, Authorization
 
 
 def classify_on_edf(filepath):
@@ -32,9 +30,9 @@ def classify_on_edf(filepath):
     """
     savepath = filepath[:-4] + "_ng-annotated.edf"
     # Get path to current file so this can be called from anywhere
-    parent_folder_path = "/".join((os.path.abspath(__file__)).split("/")[:-2])
+    parent_folder_path = "/".join((os.path.abspath(__file__)).split("/")[:-1])
     classifier = EpilepsyClassifier(
-        parent_folder_path + "/stored_models/neurogram_0.5.2.h5"
+        parent_folder_path + "/stored_models/neurogram_1.0.3.h5"
     )
     # Clasifies and saves file to path: savepath
     classifier.classify_on_edf(filepath, save_file=savepath)
@@ -42,12 +40,17 @@ def classify_on_edf(filepath):
 
 
 @app.route("/edf-upload", methods=["POST"])
-@cross_origin()
 def upload_edf():
     """Take in an edf and store it in /tmp/"""
-    f = request.files["file"]
+    f = request.files['file']
     filepath = "/tmp/" + f.filename
     f.save(filepath)
-    save_file = classify_on_edf(filepath)
 
-    return save_file
+    # Classify on the saved file and grab where it's saved to
+    save_file = classify_on_edf(filepath)
+    save_file = save_file[5:] # Cut /tmp/ from filename
+    print(save_file)
+
+    # response = make_response(jsonify({"annoted_file_url": save_file}))
+    return send_from_directory(directory="/tmp/", filename=save_file)
+

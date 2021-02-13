@@ -1,6 +1,6 @@
 import React from 'react';
-import axios, { post } from 'axios';
 import './index.css';
+import { saveAs } from 'file-saver';
 
 import LinearProgress from '@material-ui/core/LinearProgress';
 import file_upload from '../static/file_upload.svg';
@@ -22,7 +22,6 @@ class UploadField extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      file: null,
       status: statusEnum.upload
     }
     this.onChange = this.onChange.bind(this)
@@ -37,28 +36,30 @@ class UploadField extends React.Component {
   }
 
   fileUpload(file) {
-    const url = 'http://127.0.0.1:5000/edf-upload'
-    const formData = new FormData();
+    let formData = new FormData();
     formData.append('file', file)
-    const config = {
-      headers: {
-        'content-type': 'multipart/form-data',
-        'Access-Control-Allow-Origin': '*'
-      }
-    }
-    return post(url, formData, config)
+
+    return fetch('http://127.0.0.1:5000/edf-upload', {
+      method: 'POST',
+      body: formData,
+    })
   }
 
   onChange(e) {
     // Immediately upload file on selection
     this.setState({
-      file: e.target.files[0],
       status: statusEnum.loading
     })
-    this.fileUpload(this.state.file)
+
+    let file = e.target.files[0]
+    this.fileUpload(file)
       .then((response) => {
         this.setState({status: statusEnum.download})
-        console.log(response.data);
+        console.log(response.blob);
+        return response.blob()
+      })
+      .then((blob) => {
+        saveAs(blob, "testFile.edf");
       })
       .catch((err) => {
         console.log(err)
@@ -71,6 +72,7 @@ class UploadField extends React.Component {
         <input type="file"
           ref={fileInput => this.fileInput = fileInput}
           id="fileUpload"
+          name="eegFile"
           onChange={this.onChange}
         />
         <LinearProgress />
