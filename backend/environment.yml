@@ -1,4 +1,4 @@
-name: mne
+name: eeg_analysis
 channels:
 - conda-forge
 dependencies:
@@ -37,3 +37,7 @@ dependencies:
 - pyqt
 - mne
 - mffpy>=0.5.7
+- tensorflow
+- pyedflib
+- flask
+- flask_cors
