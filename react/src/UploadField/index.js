@@ -6,6 +6,8 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import file_upload from '../static/file_upload.svg';
 import file_download from '../static/file_download.svg';
 
+const BASE_URL = process.env.REACT_APP_BACKEND_URL;
+
 const statusEnum = Object.freeze({
   "upload": 0,
   "loading": 1,
@@ -39,9 +41,12 @@ class UploadField extends React.Component {
     let formData = new FormData();
     formData.append('file', file)
 
-    return fetch('http://127.0.0.1:5000/edf-upload', {
+    return fetch(BASE_URL + '/edf-upload', {
       method: 'POST',
       body: formData,
+      headers: {
+	  "accepts":"application/json"
+      }
     })
   }
 
