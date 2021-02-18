@@ -11,6 +11,7 @@ class EDFReader:
     """Suit of methods for edf files"""
 
     def __init__(self, file_path):
+        self.file_path = file_path
         self.raw_edf = mne.io.read_raw_edf(file_path)
         self.info = self.raw_edf.info
         self.sample_rate = self.info["sfreq"]
@@ -28,6 +29,13 @@ class EDFReader:
         """Change the samplerate"""
         self.raw_edf.resample(sample_rate)
         self.sample_rate = self.raw_edf.info["sfreq"]
+
+    def get_annotations_as_df(self):
+        """Grab the annotations stored in the original file as
+        pandas dataframe
+        """
+        annotations = mne.read_annotations(self.file_path)
+        return annotations.to_data_frame()
 
     def data_to_resampled_matrix(self, new_samplerate):
         data = self.data_to_standard_matrix()
