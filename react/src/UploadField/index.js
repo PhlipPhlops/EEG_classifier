@@ -92,16 +92,20 @@ class UploadField extends React.Component {
     this.fileUpload(file)
       .then((response) => response.json())
       .then((data) => {
-        this.setState({
-          status: statusEnum.download,
+        let dataObj = {
           filekey: data.file_key,
           filename: data.file_name,
-          eegData: data.eeg_data,
-          eegAnnotations: data.eeg_annotations
+          eegData: JSON.parse(data.eeg_data),
+          eegAnnotations: JSON.parse(data.eeg_annotations)
+        }
+
+        this.setState({
+          status: statusEnum.download,
+          ...dataObj
         })
-      })
-      .then(() => {
-        console.log(this.state)
+
+        // Call onDataAvailable callback
+        this.props.onEegData(dataObj)
       })
       .catch((err) => {
         console.log(err)

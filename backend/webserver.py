@@ -95,6 +95,7 @@ def upload_edf():
 
     # Classify on the saved file and grab where its save name
     save_file = classify_on_edf(original_filepath)
+
     # Generate key and store in keymap file for later retrieval
     file_key = generate_key(save_file)
     # Read data and annotations from edf
