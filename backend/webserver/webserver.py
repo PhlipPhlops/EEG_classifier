@@ -9,14 +9,14 @@ import random
 from flask import Flask
 from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
-from flask_socketio import SocketIO
-from waitress import serve
-from .classify_epilepsy import EpilepsyClassifier
-from .edf_reader import EDFReader
+from flask_socketio import SocketIO, send
+from ..classify_epilepsy import EpilepsyClassifier
+from ..edf_reader import EDFReader
 
 ## Configure Flask app
 app = Flask("backend", static_folder="../react/build", template_folder="../react/build")
 app.config["SECRET_KEY"] = "dev"
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 ## Setup CORS headers
 cors = CORS(app)
@@ -30,6 +30,7 @@ MODEL_NAME = 'neurogram_1.0.3.h5'
 @app.route("/", methods=["GET"])
 def sanity_check():
     """Just a ping"""
+    app.logger.info('ping')
     response = make_response("pong", 200)
     response.mimetype = "text/plain"
     return response
@@ -40,8 +41,8 @@ def classify_on_edf(filepath):
     Returns savepath of associated file
     """
     savepath = filepath[:-4] + "_ng-annotated.edf"
-    # Get path to current file so this can be called from anywhere
-    parent_folder_path = "/".join((os.path.abspath(__file__)).split("/")[:-1])
+    # Get path to current module so this can be called from anywhere
+    parent_folder_path = "/".join((os.path.abspath(__file__)).split("/")[:-2])
     classifier = EpilepsyClassifier(
         parent_folder_path + "/stored_models/" + MODEL_NAME
     )
@@ -118,7 +119,13 @@ def download_edf(filekey):
     return send_from_directory(directory="/tmp/", filename=filename)
 
 
-if __name__ == "__main__":
-    # serve called when run as a module
-    # so it doesn't interfere with flask dev
-    serve(app, listen='*:8080')
+#### SOCKETIO TEST
+@socketio.on('connect')
+def hadnle_connection():
+    app.logger.info("Connection Established")
+
+@socketio.on('message')
+def handle_socket(json):
+    app.logger.info("MESSAGE RECEIVED " + str(json))
+    send('returned')
+    return None
