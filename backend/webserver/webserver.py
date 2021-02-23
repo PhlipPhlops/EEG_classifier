@@ -46,7 +46,7 @@ def classify_on_edf(filepath):
     classifier = EpilepsyClassifier(
         parent_folder_path + "/stored_models/" + MODEL_NAME
     )
-    # Clasifies and saves file to path: savepath
+    # Classifies and saves file to path: savepath
     classifier.classify_on_edf(filepath, save_file=savepath)
     return savepath
 
