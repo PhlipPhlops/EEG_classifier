@@ -1,12 +1,12 @@
 import React from 'react';
 import './index.css';
 import { saveAs } from 'file-saver';
+import netface from '../api/classifier_interface';
 
 import file_upload from '../static/file_upload.svg';
 import downloading from '../static/downloading.svg';
 import file_download from '../static/file_download.svg';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL;
 
 const statusEnum = Object.freeze({
   "upload": 0,
@@ -34,35 +34,11 @@ class UploadField extends React.Component {
     }
 
     // Bind functions to this object
-    this.fileUpload = this.fileUpload.bind(this)
     this.triggerInputFile = this.triggerInputFile.bind(this)
     this.onFileSelected = this.onFileSelected.bind(this)
     this.onDownloadClicked = this.onDownloadClicked.bind(this)
     this.onButtonClicked = this.onButtonClicked.bind(this)
   }
-
-  /* NETWORK METHODS */
-
-  fileUpload(file) {
-    let formData = new FormData();
-    formData.append('file', file)
-
-    return fetch(BASE_URL + '/edf-upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        "accepts":"application/json"
-      }
-    })
-  }
-
-  fileDownload(filekey) {
-    return fetch(BASE_URL + '/edf-download/' + filekey, {
-      method: 'GET'
-    })
-  }
-
-  /* INTERACTION METHODS */
 
   triggerInputFile() {
     // Asks user to upload a file
@@ -72,7 +48,7 @@ class UploadField extends React.Component {
   }
 
   onDownloadClicked(e) {
-    this.fileDownload(this.state.filekey)
+    netface.downloadByFilekey(this.state.filekey)
       .then((response) => response.blob())
       .then((blob) => {
         saveAs(blob, "ng-annotated_" + this.state.filename)
@@ -89,7 +65,7 @@ class UploadField extends React.Component {
     })
 
     let file = e.target.files[0]
-    this.fileUpload(file)
+    netface.uploadFile(file)
       .then((response) => response.json())
       .then((data) => {
         let dataObj = {

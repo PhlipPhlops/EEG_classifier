@@ -6,12 +6,11 @@ $ flask run
 import os
 import string
 import random
-from flask import Flask
+from flask import Flask, request
 from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO, send
-from ..classify_epilepsy import EpilepsyClassifier
-from ..edf_reader import EDFReader
+from .classifier_interface import ClassifierInterface
 
 ## Configure Flask app
 app = Flask("backend", static_folder="../react/build", template_folder="../react/build")
@@ -21,64 +20,31 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 ## Setup CORS headers
 cors = CORS(app)
 
-## Constants
-# Points to a file in /tmp/ that fills with key/val pairs
-KEYMAP_FILENAME = '/tmp/file_key_map.txt'
-# The Neurogram model version to classify with
-MODEL_NAME = 'neurogram_1.0.3.h5'
+## Pull out the logger for use
+logger = app.logger
 
-@app.route("/", methods=["GET"])
-def sanity_check():
-    """Just a ping"""
-    app.logger.info('ping')
-    response = make_response("pong", 200)
-    response.mimetype = "text/plain"
-    return response
+## Classifier interface to be established on connection
+## Register connections here
+netface_map = {} # Key: SID, val ClassifierInterface object
 
-def classify_on_edf(filepath):
-    """Runs the (long) method to classify epileptic
-    discharges on EDF dta
-    Returns savepath of associated file
+@socketio.on('connect')
+def establish_connection():
+    # Register connection to netface map
+    netface = ClassifierInterface(socketio, request.sid, logger)
+    netface_map[request.sid] = netface
+    netface.establish_connection()
+
+def netface():
+    """Use an established interface bound to this sid
+    for requests
+
+    THERE MUST BE A request.form['sid'] MADE AVAILABLE
+    IN THE FORMDATA OF THE INCOMING REQUEST for this method
+
+    use like: netface().someFunction()
     """
-    savepath = filepath[:-4] + "_ng-annotated.edf"
-    # Get path to current module so this can be called from anywhere
-    parent_folder_path = "/".join((os.path.abspath(__file__)).split("/")[:-2])
-    classifier = EpilepsyClassifier(
-        parent_folder_path + "/stored_models/" + MODEL_NAME
-    )
-    # Classifies and saves file to path: savepath
-    classifier.classify_on_edf(filepath, save_file=savepath)
-    return savepath
-
-
-def generate_key(filename):
-    """Adds key value pair to the keymap fle
-       filename is the file to be stored
-    """
-    def random_string(length=16):
-        """Returns a random string of given length"""
-        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
-    
-    key = random_string()
-    with open(KEYMAP_FILENAME, "a") as keymap_file:
-        keymap_file.write(key + ":" + filename + "\n")
-        keymap_file.close()
-    return key
-
-def retrieve_filename(key, trim_tmp=True):
-    """Reads keymap file and retrieves filename associated with key
-    if trim_tmp, expects file to be in /tmp/ and trims /tmp/ from
-    filename
-    """
-    keymap_dict = {}
-    with open(KEYMAP_FILENAME, "r") as keymap_file:
-        for line in keymap_file:
-            read_key, read_val = line.split(":")
-            keymap_dict[read_key] = read_val
-    filename = keymap_dict[key]
-    if trim_tmp:
-        filename = filename[5:]
-    return filename.strip() # strip \n characters
+    logger.info(f"verify {request.form['sid']}")
+    return netface_map[request.form['sid']]
 
 
 @app.route("/edf-upload", methods=["POST"])
@@ -88,44 +54,26 @@ def upload_edf():
     annotated file so it can be retrieved later, along with
     the data so it can be rendered
     """
-    # Save file to /tmp/
-    # WARNING: Overlapping filenames?
-    f = request.files['file']
-    original_filepath = "/tmp/" + f.filename
-    f.save(original_filepath)
+    logger.info(request.form['sid'])
+    response_data = netface().handle_edf()
 
-    # Classify on the saved file and grab where its save name
-    save_file = classify_on_edf(original_filepath)
-
-    # Generate key and store in keymap file for later retrieval
-    file_key = generate_key(save_file)
-    # Read data and annotations from edf
-    edf = EDFReader(save_file)
-
-    # Craft response including file_key, file_name, data, and annotations
-    return make_response(jsonify({
-        "file_key": file_key,
-        "file_name": f.filename,
-        "eeg_data": edf.to_data_frame().to_json(),
-        "eeg_annotations": edf.get_annotations_as_df().to_json()
-    }))
+    return make_response(jsonify(response_data))
 
 
-@app.route("/edf-download/<filekey>", methods=["GET"])
+@app.route("/edf-download/<filekey>", methods=["POST"])
 def download_edf(filekey):
     """Returns a file saved in /tmp/ if associated with keymap"""
     # WARNING: Will error if key not available
-    filename = retrieve_filename(filekey, trim_tmp=True)
+    filename = netface().file_by_key(filekey)
     return send_from_directory(directory="/tmp/", filename=filename)
 
 
-#### SOCKETIO TEST
-@socketio.on('connect')
-def hadnle_connection():
-    app.logger.info("Connection Established")
+### Trivial Methods ###
 
-@socketio.on('message')
-def handle_socket(json):
-    app.logger.info("MESSAGE RECEIVED " + str(json))
-    send('returned')
-    return None
+@app.route("/", methods=["GET"])
+def sanity_check():
+    """Just a ping"""
+    logger.info('ping')
+    response = make_response("pong", 200)
+    response.mimetype = "text/plain"
+    return response
