@@ -68,7 +68,15 @@ def download_edf(filekey):
     return send_from_directory(directory="/tmp/", filename=filename)
 
 
-### Trivial Methods ###
+@app.route("/edf-chunk", methods=["POST"])
+def retrieve_chunk():
+    """Grab a chunk of the data for the server to render"""
+    chunk_i = request.form['chunk_i']
+    chunk_total = request.form['chunk_total']
+
+    response_data = netface().getChunk(chunk_i, chunk_total)
+    return make_response(jsonify(response_data))
+
 
 @app.route("/", methods=["GET"])
 def sanity_check():

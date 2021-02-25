@@ -31,6 +31,7 @@ class EpilepsyClassifier:
         sample_rate=500,
         window_size=500,
         step_width=200,
+        percent_callback=None,
     ):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
@@ -53,16 +54,19 @@ class EpilepsyClassifier:
             return float(i / sample_rate)
 
         print("Classifying, hold your horses.")
-        percent_step = 0.10
+        percent_step = 0.05
 
         # Slide window across data
         # Collect positive indices and prediction confidence
         positive_indices = []
         prediction_confs = []
         for i in range(0, data.shape[1] - window_size, step_width):
-            if float(i) / data.shape[1] >= percent_step:
-                print(f"{int(percent_step*100)}%: {i}/{data.shape[1]}")
-                percent_step += 0.10
+            percent = float(i) / data.shape[1]
+            if percent >= percent_step:
+                print(f"{int(percent*100)}%: {i}/{data.shape[1]}")
+                if percent_callback is not None:
+                    percent_callback(percent)
+                percent_step += 0.05
             # Convert window into a "list" (one element) of windows
             # needs to be in a list for the following transform
             window = np.array([data[:, i : (i + window_size)]])
@@ -112,21 +116,19 @@ class EpilepsyClassifier:
 
         return onsets, durations, descriptions
 
-    def classify_on_edf(self, file_name, save_file="", window_size=500):
+    def classify_on_edf(self, edf, save_file="", window_size=500, percent_callback=None):
         """Passes a sliding window over the data, passing the window
         into the given model to classify for epileptic discharges.
 
         data: np matrix of (#electrodes)x(#timesteps)
         """
-        print("=======")
-        print(file_name)
-        edf = EDFReader(file_name)
         data = edf.data_to_resampled_matrix(self.sample_rate)
         raw = edf.raw_edf
 
         # The meat of the classification
         onsets, durations, descriptions = self._sliding_window(
-            data, window_size=window_size
+            data, window_size=window_size,
+            percent_callback=percent_callback
         )
         # Save annotations to edf
         annotations = mne.Annotations(onsets, durations, descriptions)

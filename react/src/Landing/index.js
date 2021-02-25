@@ -4,28 +4,38 @@ import UploadField from '../UploadField';
 import ElectrogramDisplay from '../ElectrogramDisplay';
 import text_logo from '../static/text_logo.png';
 
+import netface from '../api/classifier_interface';
+
 
 class Landing extends React.Component{
   
   constructor(props) {
     super(props)
     this.state = {
-      dataIsAvailable: false,
+      renderElectrogram: false,
+      data: {},
     }
-
-    // Bind functions to this object
-    this.onEegData = this.onEegData.bind(this)
   }
 
-  onEegData(dataObj) {
+  onAnnotationData = (dataObj) => {
     this.setState({
-      dataIsAvailable: true,
       data: dataObj
     })
   }
 
+  triggerElectrogram = () => {
+    console.log("waiting for data")
+    if (netface.edf_uploaded) {
+      this.setState({
+        renderElectrogram: true,
+      })
+    } else {
+      setTimeout(this.triggerElectrogram, 1000) // wait a second and try again
+    }
+  }
+
   renderElectrogram() {
-    if (this.state.dataIsAvailable) {
+    if (this.state.renderElectrogram) {
       return <ElectrogramDisplay data={this.state.data} />
     }
   }
@@ -35,8 +45,13 @@ class Landing extends React.Component{
     return (
       <div className="Landing">
         <img className="logo" src={text_logo}></img>
+        {this.renderElectrogram()}
         <div id="uploadContainer">
-          <UploadField onEegData={this.onEegData} className="upload" />
+          <UploadField
+              className="upload"
+              triggerElectrogram={this.triggerElectrogram}
+              onAnnotationData={this.onAnnotationData}
+          />
         </div>
       </div>
     );

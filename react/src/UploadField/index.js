@@ -27,8 +27,10 @@ const buttonIcon = Object.freeze({
 })
 
 class UploadField extends React.Component {
+
   constructor(props) {
     super(props)
+    const { triggerElectrogram, onAnnotationData } = props
     this.state = {
       status: statusEnum.upload
     }
@@ -63,6 +65,8 @@ class UploadField extends React.Component {
     this.setState({
       status: statusEnum.loading
     })
+    // Tell electrogram to lookout for data
+    this.props.triggerElectrogram()
 
     let file = e.target.files[0]
     netface.uploadFile(file)
@@ -71,7 +75,6 @@ class UploadField extends React.Component {
         let dataObj = {
           filekey: data.file_key,
           filename: data.file_name,
-          eegData: JSON.parse(data.eeg_data),
           eegAnnotations: JSON.parse(data.eeg_annotations)
         }
 
@@ -81,7 +84,7 @@ class UploadField extends React.Component {
         })
 
         // Call onDataAvailable callback
-        this.props.onEegData(dataObj)
+        this.props.onAnnotationData(dataObj)
       })
       .catch((err) => {
         console.log(err)

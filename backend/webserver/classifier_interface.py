@@ -18,7 +18,7 @@ KEYMAP_FILENAME = '/tmp/file_key_map.txt'
 MODEL_NAME = 'neurogram_1.0.3.h5'
 
 
-def classify_on_edf(filepath):
+def classify_on_edf(filepath, edf, percent_callback=None):
     """Runs the (long) method to classify epileptic
     discharges on EDF dta
     Returns savepath of associated file
@@ -30,7 +30,7 @@ def classify_on_edf(filepath):
         parent_folder_path + "/stored_models/" + MODEL_NAME
     )
     # Classifies and saves file to path: savepath
-    classifier.classify_on_edf(filepath, save_file=savepath)
+    classifier.classify_on_edf(edf, save_file=savepath, percent_callback=percent_callback)
     return savepath
 
 
@@ -75,6 +75,7 @@ class ClassifierInterface:
         self.socket = socket
         self.sid = sid
         self.logger = logger
+        self.edf = None
 
     def establish_connection(self):
         self.logger.info(f"Connection Established, sid: {request.sid}")
@@ -88,8 +89,21 @@ class ClassifierInterface:
         original_filepath = "/tmp/" + f.filename
         f.save(original_filepath)
 
+        # Read edf and register to interface
+        self.edf = EDFReader(original_filepath)
+
+        # Tell client we're ready for it to request data chunks
+        self.socket.emit('edf uploaded', {}, room=self.sid)
+
+        def on_percent(perc):
+            self.socket.emit('loading', {'percent': perc}, room=self.sid)
+
         # Classify on the saved file and grab where its save name
-        save_file = classify_on_edf(original_filepath)
+        save_file = classify_on_edf(
+            original_filepath,
+            self.edf,
+            percent_callback=on_percent
+        )
 
         # Generate key and store in keymap file for later retrieval
         file_key = generate_key(save_file)
@@ -99,7 +113,6 @@ class ClassifierInterface:
         return {
             "file_key": file_key,
             "file_name": f.filename,
-            "eeg_data": edf.to_data_frame().to_json(),
             "eeg_annotations": edf.get_annotations_as_df().to_json()
         }
 
@@ -107,5 +120,9 @@ class ClassifierInterface:
         """Returns a file saved in /tmp/ if associated with keymap"""
         return retrieve_filename(filekey, trim_tmp=True)
 
-    # def emitChunk():
-    #     return
+    def getChunk(self, n, N):
+        n = int(n)
+        N = int(N)
+        return {
+            "eeg_chunk": self.edf.chunk_as_data_frame(n, N).to_json()
+        }
