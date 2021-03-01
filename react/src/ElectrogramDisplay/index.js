@@ -7,16 +7,10 @@ class ElectrogramDisplay extends React.Component {
 
   constructor(props) {
     super(props)
-    // this.state = {
-    //   eegData: this.organizeEegData(this.props.data.eegData)
-    // }
-    // Annotations is the magic here, data is handled in chunks now
     
     this.state = {
       eegData: {}
     }
-
-    this.masterCopy = {}
 
     // Download chunks (from index 0 -> arbitrary total)
     // If it's too heavy, raise total for smaller chunks
@@ -26,19 +20,14 @@ class ElectrogramDisplay extends React.Component {
 
   requestData = (n, N) => {
     if (n >= N) {
-      console.log("Data download complete!")
-      // Set state to re-render
-      this.setState({
-        eegData: this.masterCopy
-      })
       let sum = 0
-      for (let key in this.masterCopy) {
-        console.log(this.masterCopy[key].length)
-        sum += this.masterCopy[key].length
+      for (let key in this.state.eegData) {
+        sum += this.state.eegData[key].length
       }
-      console.log(sum)
+      console.log(`Data download complete! Sum: ${sum}`)
       return
     }
+
     console.log(`Requesting ${n} of ${N}`)
     netface.requestChunk(n, N)
       .then((data) => data.json())
@@ -47,46 +36,32 @@ class ElectrogramDisplay extends React.Component {
         // Organize and load data
         let eegData = this.organizeEegData(chunk)
         this.pushDataToSeries(eegData)
+          .then(() => {
+            // Call for next chunk
+            if (n < 10)
+            this.requestData(n+1, N)
+          })
 
-        // Call for next chunk
-        this.requestData(n+1, N)
       })
   }
 
-  pushDataToSeries(eegData) {
-
-    // if (this.echartRef == undefined) {
-    //   let reattempt = () => {
-    //     this.pushDataToSeries(eegData)
-    //   }
-    //   setTimeout(reattempt, 500) // Try again until echart is available
-    //   return
-    // }
-    // const echartInstance = this.echartRef.getEchartsInstance()
-    // for (let key in eegData) {
-    //   if (key == "time") {
-    //     continue
-    //   }
-    //   try {
-    //     echartInstance.appendData({
-    //       seriesIndex: key,
-    //       data: eegData[key]
-    //     })
-    //   } catch (e) {
-    //     console.log(e)
-    //     // console.error(e)
-    //     return
-    //   }
-    // }
-    for (let key in eegData) {
-      if (key == "time") {
-        continue
+  pushDataToSeries = (eegData) => {
+    return new Promise((resolve, reject) => {
+      let masterCopy = this.state.eegData
+      for (let key in eegData) {
+        if (key == "time") {
+          continue
+        }
+        if (!(key in masterCopy)) {
+          masterCopy[key] = []
+        }
+        masterCopy[key].push(...eegData[key])
       }
-      if (!(key in this.masterCopy)) {
-        this.masterCopy[key] = []
-      }
-      this.masterCopy[key].push(eegData[key])
-    }
+      this.setState({
+        eegData: masterCopy
+      })
+      resolve()
+    })
   }
 
 
@@ -114,8 +89,6 @@ class ElectrogramDisplay extends React.Component {
     let electrodeList = Object.keys(chunk[keysList[0]])
     // Create empty lists
     let orgedData = {}
-    // console.log(electrodeList)
-    // console.log(chunk[keysList[0]])
     electrodeList.forEach((elec) => {
       orgedData[elec] = []
     })
@@ -127,42 +100,102 @@ class ElectrogramDisplay extends React.Component {
       })
     })
 
-    console.log(orgedData)
-
     return orgedData
   }
 
 
   getOptions() {
     let series = []
-    // Grab data from eegData state
-    Object.keys(this.state.eegData).forEach((key) => {
-      if (key == "time"){
-        // Skip time value
-        return
-      }
+    let grids = []
+    let xAxies = []
+    let yAxies = []
+
+    let keysArray = Object.keys(this.state.eegData)
+
+    // Values calculated in percent
+    let height = Math.ceil(95 / keysArray.length)
+    // Render each EEG to its own grid
+    keysArray.forEach((key) => {
+      let i = keysArray.indexOf(key)
+      let oflow_pad = 5
+      let grid_top = (i * height - oflow_pad) + "%"
+      let grid_bottom = 100 - ((i + 1) * height + oflow_pad) + "%"
+
+      grids.push({
+        left: "4%",
+        right: "2%",
+        bottom: grid_bottom,
+        top: grid_top,
+        show: false,
+        tooltip: {
+          show: true,
+          trigger: 'axis',
+        },
+      })
+
+      xAxies.push({
+        // Index of data as categories, for now
+        data: [...Array(this.state.eegData[key].length).keys()],
+        type: 'category',
+        gridIndex: i,
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: (i == keysArray.length - 1),
+        },
+      })
+
+      yAxies.push({
+        type: 'value',
+        gridIndex: i,
+        axisLabel: {
+          show: (i == keysArray.length - 1),
+        },
+        min: -1e-4,
+        max: 1e-4,
+      })
+
       // Add a line config to series object
       series.push({
         name: key,
         type: 'line',
-        smooth: true,
+        symbol: 'none',
+        gridIndex: i,
+        yAxisIndex: i,
+        xAxisIndex: i,
+        smooth: false,
+
         data: this.state.eegData[key]
       })
     })
 
     // Configure Chart
     let options = {
-      grid: { top: 8, right: 8, bottom: 24, left: 36 },
-      xAxis: {
-        type: 'time',
-      },
-      yAxis: {
-        type: 'value',
-      },
+      // Use the values configured above
+      grid: grids,
+      xAxis: xAxies,
+      yAxis: yAxies,
       series: series,
-      tooltip: {
-        trigger: 'axis',
-      }
+
+      // Other Configuration options
+      animation: false,
+
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 5,
+          end: 30,
+        },
+        {
+          show: true,
+          gridIndex: 2,
+          type: 'slider',
+          top: '90%',
+          start: 50,
+          end: 100
+        }
+      ],
     }
 
     return options
@@ -170,10 +203,11 @@ class ElectrogramDisplay extends React.Component {
 
   render() {
     return (
-      <div style={{ backgroundColor: 'white', padding: 30}}>
-        <ReactECharts 
+      <div style={{ backgroundColor: 'white', padding: 30, height:750}}>
+        <ReactECharts
           ref={(ref) => { this.echartRef = ref }}
-          option={this.getOptions()} />
+          option={this.getOptions()}
+          style={{height: '100%'}}/>
       </div>
     )
   }
