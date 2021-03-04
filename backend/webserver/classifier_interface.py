@@ -91,6 +91,7 @@ class ClassifierInterface:
 
         # Read edf and register to interface
         self.edf = EDFReader(original_filepath)
+        self.logger.info(f"EDF Uploaded, not none: {self.edf is not None}")
 
         # Tell client we're ready for it to request data chunks
         self.socket.emit('edf uploaded', {}, room=self.sid)

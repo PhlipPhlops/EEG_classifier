@@ -10,6 +10,7 @@ from flask import Flask, request
 from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO, send
+from logging.config import dictConfig
 from .classifier_interface import ClassifierInterface
 
 ## Configure Flask app
@@ -21,6 +22,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 cors = CORS(app)
 
 ## Pull out the logger for use
+dictConfig({
+    'version': 1,
+    'root': {
+        'level': 'INFO'
+    }
+})
 logger = app.logger
 
 ## Classifier interface to be established on connection
@@ -44,7 +51,12 @@ def netface():
     use like: netface().someFunction()
     """
     logger.info(f"verify {request.form['sid']}")
-    return netface_map[request.form['sid']]
+    try:
+        specific_netface = netface_map[request.form['sid']]
+    except (KeyError):
+        logger.error(f"No associated netface with this sid: {request.form['sid']}")
+
+    return specific_netface
 
 
 @app.route("/edf-upload", methods=["POST"])
