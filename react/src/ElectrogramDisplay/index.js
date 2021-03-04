@@ -11,24 +11,31 @@ class ElectrogramDisplay extends React.Component {
     this.state = {
       eegData: {}
     }
-
+  }
+  
+  componentDidMount() {
     // Download chunks (from index 0 -> arbitrary total)
     // If it's too heavy, raise total for smaller chunks
     this.requestData(0, 100) 
+    console.log(`Annotations: ${this.props.annotations}`)
   }
 
 
   requestData = (n, N) => {
+    // Use || n == <somenumber> to early stop for testing
     if (n >= N) {
       let sum = 0
       for (let key in this.state.eegData) {
         sum += this.state.eegData[key].length
       }
       console.log(`Data download complete! Sum: ${sum}`)
+      // Data has been loaded into state.eegData,
+      // SetState to redraw (calling too often makes it quite slow)
+      this.setState({})
       return
     }
 
-    console.log(`Requesting ${n} of ${N}`)
+    console.log(`Requesting ${n+1} of ${N}`)
     netface.requestChunk(n, N)
       .then((data) => data.json())
       .then((data) => {
@@ -38,28 +45,23 @@ class ElectrogramDisplay extends React.Component {
         this.pushDataToSeries(eegData)
           .then(() => {
             // Call for next chunk
-            if (n < 10)
             this.requestData(n+1, N)
           })
 
       })
   }
 
-  pushDataToSeries = (eegData) => {
+  pushDataToSeries = (data) => {
     return new Promise((resolve, reject) => {
-      let masterCopy = this.state.eegData
-      for (let key in eegData) {
+      for (let key in data) {
         if (key == "time") {
           continue
         }
-        if (!(key in masterCopy)) {
-          masterCopy[key] = []
+        if (!(key in this.state.eegData)) {
+          this.state.eegData[key] = []
         }
-        masterCopy[key].push(...eegData[key])
+        this.state.eegData[key].push(...data[key])
       }
-      this.setState({
-        eegData: masterCopy
-      })
       resolve()
     })
   }
@@ -85,7 +87,7 @@ class ElectrogramDisplay extends React.Component {
       also outputs time var
     */
     // Grab iterable and electrode labels (includes time label if present)
-    let keysList = Object.keys(chunk).slice(0, 100)
+    let keysList = Object.keys(chunk)
     let electrodeList = Object.keys(chunk[keysList[0]])
     // Create empty lists
     let orgedData = {}
@@ -117,7 +119,7 @@ class ElectrogramDisplay extends React.Component {
     // Render each EEG to its own grid
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
-      let oflow_pad = 5
+      let oflow_pad = 10
       let grid_top = (i * height - oflow_pad) + "%"
       let grid_bottom = 100 - ((i + 1) * height + oflow_pad) + "%"
 
@@ -142,18 +144,23 @@ class ElectrogramDisplay extends React.Component {
           show: false
         },
         axisLabel: {
-          show: (i == keysArray.length - 1),
+          show: false,
         },
+        name: key,
+        nameLocation: 'start',
       })
 
       yAxies.push({
         type: 'value',
         gridIndex: i,
         axisLabel: {
-          show: (i == keysArray.length - 1),
+          show: false,
         },
-        min: -1e-4,
-        max: 1e-4,
+        splitLine: {
+          show: false,
+        },
+        min: -1e-3,
+        max: 1e-3,
       })
 
       // Add a line config to series object
@@ -165,6 +172,7 @@ class ElectrogramDisplay extends React.Component {
         yAxisIndex: i,
         xAxisIndex: i,
         smooth: false,
+        sampling: 'lttb',
 
         data: this.state.eegData[key]
       })
@@ -183,17 +191,35 @@ class ElectrogramDisplay extends React.Component {
 
       dataZoom: [
         {
-          type: 'inside',
-          start: 5,
-          end: 30,
+          show: true,
+          xAxisIndex: Object.keys(series),
+          type: 'slider',
+          top: '95%',
+          start: 0,
+          end: 10,
+          preventDefaultMouseMove: true,
         },
         {
-          show: true,
-          gridIndex: 2,
+          yAxisIndex: Object.keys(series),
           type: 'slider',
-          top: '90%',
-          start: 50,
-          end: 100
+          top: '45%',
+          filterMode: 'none',
+
+          zoomOnMouseWheel: true,
+          moveOnMouseWheel: false,
+          moveOnMouseMove: false,
+          preventDefaultMouseMove: true,
+
+          id: 'eegGain',
+          minSpan: 10,
+          maxSpan: 100,
+          start: 25,
+          end: 75,          
+        },{
+          type: 'inside',
+          yAxisIndex: Object.keys(series),
+          moveOnMouseWheel: false,
+          preventDefaultMouseMove: true,
         }
       ],
     }

@@ -13,13 +13,14 @@ class Landing extends React.Component{
     super(props)
     this.state = {
       renderElectrogram: false,
-      data: {},
+      annotations: {},
     }
   }
 
   onAnnotationData = (dataObj) => {
+    console.log("annotations setstate")
     this.setState({
-      data: dataObj
+      annotations: dataObj
     })
   }
 
@@ -36,7 +37,7 @@ class Landing extends React.Component{
 
   renderElectrogram() {
     if (this.state.renderElectrogram) {
-      return <ElectrogramDisplay data={this.state.data} />
+      return <ElectrogramDisplay annotations={this.state.annotations} />
     }
   }
 
