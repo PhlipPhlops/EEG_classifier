@@ -66,7 +66,7 @@ def upload_edf():
     annotated file so it can be retrieved later, along with
     the data so it can be rendered
     """
-    logger.info(request.form['sid'])
+    logger.info(f"EDF-UPLOAD: {request.form['sid']}")
     response_data = netface().handle_edf()
 
     return make_response(jsonify(response_data))

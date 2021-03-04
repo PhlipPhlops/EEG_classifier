@@ -52,7 +52,7 @@ class UploadField extends React.Component {
   awaitConnection = () => {
     if (!netface.connectionEstablished) {
       console.log(netface.connectionEstablished)
-      setTimeout(this.awaitConnection, 200) // Wait .1s and try again
+      setTimeout(this.awaitConnection, 300) // Wait .1s and try again
     }
     console.log(netface.connectionEstablished)
     this.setState({
