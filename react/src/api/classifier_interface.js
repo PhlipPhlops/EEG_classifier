@@ -8,6 +8,7 @@ class ClassifierInterface {
     this.socket = io(`${BASE_URL}`);
     // this.socket.id is filled on successful establish
     // used to identify socket connection for all requests
+    this.connectionEstablished = false;
     this.edf_uploaded = false;
 
     // Register some standard events
@@ -27,7 +28,9 @@ class ClassifierInterface {
   onConnectionEstablished = (response) => {
     // Ping pongs the server
     if (this.socket.id == response.sid) {
+      this.connectionEstablished = true
       console.log('Neurogram connection established.')
+      console.log(`SID: ${this.socket.id}`)
     } else {
       console.error('Establish signal recevied but SIDs do not match.')
     }
@@ -64,6 +67,8 @@ class ClassifierInterface {
     let formData = new FormData();
     formData.append('sid', this.socket.id)
     formData.append('file', file)
+
+    console.log(`UPLOADING TO: ${BASE_URL + '/edf-upload'}`)
 
     let promise = fetch(BASE_URL + '/edf-upload', {
       method: 'POST',

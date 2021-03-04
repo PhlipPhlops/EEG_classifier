@@ -11,19 +11,22 @@ import file_download from '../static/file_download.svg';
 const statusEnum = Object.freeze({
   "upload": 0,
   "loading": 1,
-  "download": 2
+  "download": 2,
+  "connecting": 3,
 })
 
 const buttonText = Object.freeze({
   0: 'Upload your .edf file here',
   1: 'Classifying, this will take a minute...',
-  2: 'Download your annotated .edf'
+  2: 'Download your annotated .edf',
+  3: 'Connecting to server...'
 })
 
 const buttonIcon = Object.freeze({
   0: file_upload,
   1: downloading,
   2: file_download,
+  3: downloading,
 })
 
 class UploadField extends React.Component {
@@ -32,7 +35,7 @@ class UploadField extends React.Component {
     super(props)
     const { triggerElectrogram, onAnnotationData } = props
     this.state = {
-      status: statusEnum.upload
+      status: statusEnum.connecting
     }
 
     // Bind functions to this object
@@ -40,6 +43,21 @@ class UploadField extends React.Component {
     this.onFileSelected = this.onFileSelected.bind(this)
     this.onDownloadClicked = this.onDownloadClicked.bind(this)
     this.onButtonClicked = this.onButtonClicked.bind(this)
+  }
+
+  componentDidMount() {
+    this.awaitConnection()
+  }
+
+  awaitConnection = () => {
+    if (!netface.connectionEstablished) {
+      console.log(netface.connectionEstablished)
+      setTimeout(this.awaitConnection, 200) // Wait .1s and try again
+    }
+    console.log(netface.connectionEstablished)
+    this.setState({
+      status: statusEnum.upload
+    })
   }
 
   triggerInputFile() {
@@ -97,6 +115,7 @@ class UploadField extends React.Component {
       case statusEnum.upload:
         this.triggerInputFile(e)
         break
+      case statusEnum.connecting:
       case statusEnum.loading:
         console.log("Loading...")
         break
