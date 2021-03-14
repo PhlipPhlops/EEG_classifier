@@ -1,4 +1,4 @@
-name: eeg_analysis
+name: ng
 channels:
 - conda-forge
 dependencies:
@@ -40,4 +40,8 @@ dependencies:
 - tensorflow
 - pyedflib
 - flask
-- flask_cors
+
+- pip:
+  - flask_cors
+  - flask_socketio
+  - Flask-Caching
