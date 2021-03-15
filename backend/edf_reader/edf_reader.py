@@ -22,23 +22,6 @@ class EDFReader:
         """Returns a dataframe of (#electrodes)x(#timesteps)"""
         return self.raw_edf.to_data_frame(scalings={"eeg": 1}).transpose()
 
-    def chunk_as_data_frame(self, n, N):
-        """Returns the nth chunk out of N total chunks
-        of the data frame; specifically, all available electrodes
-        from timestep n*(timesteps/N):(n+1)*(timesteps/N)-1
-        """
-        if n < 0 or n >= N:
-            raise Exception("n chunk must be in range [0:N)")
-        if self.df is None:
-            self.df = self.to_data_frame()
-        # Start and end indices
-        timesteps = len(self.df.columns)
-        w_s = n*(int(timesteps / N))
-        w_e = (n+1)*(int(timesteps / N)) - 1
-
-        chunk = self.df.iloc[:, w_s:w_e]
-        return chunk
-
     def plot(self):
         """Plot to visual waveforms"""
         self.raw_edf.plot(block=True)

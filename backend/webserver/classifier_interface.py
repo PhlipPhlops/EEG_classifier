@@ -69,57 +69,22 @@ class ClassifierInterface:
     """This class interfaces the webserver and classifier to handle
     connection-specific events to the client
     """
-    
-    def __init__(self, socket, logger, from_dict=None):
-        if from_dict is not None:
-            self.socket = socket
-            self.logger = logger
-            self.sid = from_dict['sid']
-            self.edf = from_dict['edf']
-        else:
-            raise AttributeError
-
-    def to_dict(self):
-        """This is used for caching. Converts puts all instance fields
-        into a dict to be cached. Later, will dict will be loaded
-        into a new instance with the same values
-
-        Only cache values that need to be stored statically
-        """
-        return {
-            'sid': self.sid,
-            'edf': self.edf,
-        }
+    def __init__(self, sid):
+        self.sid = sid
 
     def establish_connection(self):
-        self.logger.info(f"Connection Established, sid: {request.sid}")
         emit('establish', {'sid': self.sid}, room=self.sid)
 
-
-    def handle_edf(self):
-        # Save file to /tmp/
-        # WARNING: Overlapping filenames?
-        f = request.files['file']
-        original_filepath = "/tmp/" + f.filename
-        f.save(original_filepath)
-
+    def initiate_classifier(self, filepath):
         # Read edf and register to interface
-        self.edf = EDFReader(original_filepath)
-        self.logger.info(f"EDF Uploaded, not none: {self.edf is not None}")
-
-        # Tell client we're ready for it to request data chunks
-        self.socket.emit('edf uploaded', {}, room=self.sid)
+        edf = EDFReader(filepath)
 
         def on_percent(perc):
-            self.socket.emit('loading', {'percent': perc}, room=self.sid)
+            """Callback to emit percent-done"""
+            emit('loading', {'percent': perc}, room=self.sid)
 
         # Classify on the saved file and grab where its save name
-        save_file = classify_on_edf(
-            original_filepath,
-            self.edf,
-            percent_callback=on_percent
-        )
-
+        save_file = classify_on_edf(filepath, edf, percent_callback=on_percent)
         # Generate key and store in keymap file for later retrieval
         file_key = generate_key(save_file)
         # Read data and annotations from edf
@@ -127,17 +92,11 @@ class ClassifierInterface:
         # Return response data (will be jsonified)
         return {
             "file_key": file_key,
-            "file_name": f.filename,
+            ## Might break, was f.filename
+            "file_name": save_file,
             "eeg_annotations": edf.get_annotations_as_df().to_json()
         }
 
     def file_by_key(self, filekey):
         """Returns a file saved in /tmp/ if associated with keymap"""
         return retrieve_filename(filekey, trim_tmp=True)
-
-    def getChunk(self, n, N):
-        n = int(n)
-        N = int(N)
-        return {
-            "eeg_chunk": self.edf.chunk_as_data_frame(n, N).to_json()
-        }
