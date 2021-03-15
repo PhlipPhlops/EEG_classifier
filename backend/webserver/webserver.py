@@ -10,12 +10,20 @@ from flask import Flask, request
 from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO, send
+from flask_caching import Cache
 from logging.config import dictConfig
 from .classifier_interface import ClassifierInterface
 
+
 ## Configure Flask app
 app = Flask("backend", static_folder="../react/build", template_folder="../react/build")
-app.config["SECRET_KEY"] = "dev"
+config = {
+    "SECRET_KEY": "dev",
+    "CACHE_TYPE": "SimpleCache",
+    "DEBUG": True
+}
+app.config.from_mapping(config)
+cache = Cache(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 ## Setup CORS headers
@@ -31,15 +39,22 @@ dictConfig({
 logger = app.logger
 
 ## Classifier interface to be established on connection
-## Register connections here
-netface_map = {} # Key: SID, val ClassifierInterface object
+## Registered in cache under pattern 'netface_<sid>'
 
 @socketio.on('connect')
 def establish_connection():
     # Register connection to netface map
-    netface = ClassifierInterface(socketio, request.sid, logger)
-    netface_map[request.sid] = netface
-    netface.establish_connection()
+    logger.info("CONNECTION ATTEMPT")
+    try:
+        netface = ClassifierInterface(socketio, logger, from_dict={
+            'sid': request.sid,
+            'edf': None
+        })
+        cache.set("netface_"+request.sid, netface.to_dict())
+        netface.establish_connection()
+    except Exception as e:
+        logger.error(e)
+    logger.info("CONNECTION ATTEMPT COMPLETE")
 
 def netface():
     """Use an established interface bound to this sid
@@ -52,7 +67,9 @@ def netface():
     """
     logger.info(f"verify {request.form['sid']}")
     try:
-        specific_netface = netface_map[request.form['sid']]
+        sid = request.form['sid']
+        netface_dict = cache.get("netface_"+sid)
+        specific_netface = ClassifierInterface(socketio, logger, from_dict=netface_dict)
     except (KeyError):
         logger.error(f"No associated netface with this sid: {request.form['sid']}")
 

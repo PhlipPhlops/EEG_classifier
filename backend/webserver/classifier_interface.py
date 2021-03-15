@@ -70,12 +70,26 @@ class ClassifierInterface:
     connection-specific events to the client
     """
     
-    def __init__(self, socket, sid, logger):
-        # Register connection
-        self.socket = socket
-        self.sid = sid
-        self.logger = logger
-        self.edf = None
+    def __init__(self, socket, logger, from_dict=None):
+        if from_dict is not None:
+            self.socket = socket
+            self.logger = logger
+            self.sid = from_dict['sid']
+            self.edf = from_dict['edf']
+        else:
+            raise AttributeError
+
+    def to_dict(self):
+        """This is used for caching. Converts puts all instance fields
+        into a dict to be cached. Later, will dict will be loaded
+        into a new instance with the same values
+
+        Only cache values that need to be stored statically
+        """
+        return {
+            'sid': self.sid,
+            'edf': self.edf,
+        }
 
     def establish_connection(self):
         self.logger.info(f"Connection Established, sid: {request.sid}")

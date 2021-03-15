@@ -5,6 +5,8 @@ const BASE_URL = process.env.REACT_APP_BACKEND_URL;
 class ClassifierInterface {
   constructor() {
     // Attempt to establish connection
+    console.log(`${BASE_URL}`)
+    // this.socket = io(`${BASE_URL}`, { transports: ['websocket'] });
     this.socket = io(`${BASE_URL}`);
     // this.socket.id is filled on successful establish
     // used to identify socket connection for all requests
@@ -14,10 +16,11 @@ class ClassifierInterface {
     // Register some standard events
     const eventListeners = {
       'disconnect': this.onDisconnect,
-      'connect_error': () => console.error("Connection Failed. Server is likely down."),
+      'connect_error': this.onConnectError,
       'establish': this.onConnectionEstablished,
       'loading': this.onLoading,
       'edf uploaded': this.onEDFUploaded,
+      'close': () => console.error('closed')
     }
     for (let key in eventListeners) {
       this.socket.on(key, eventListeners[key])
@@ -34,6 +37,11 @@ class ClassifierInterface {
     } else {
       console.error('Establish signal recevied but SIDs do not match.')
     }
+  }
+
+  onConnectError = (error) => {
+    console.error(`Connection Failed. Server is likely down.`)
+    console.error(error)
   }
 
   onLoading = (event) => {

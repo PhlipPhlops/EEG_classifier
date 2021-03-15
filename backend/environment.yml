@@ -45,3 +45,4 @@ dependencies:
   - flask_cors
   - flask_socketio
   - Flask-Caching
+  - eventlet
