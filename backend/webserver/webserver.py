@@ -47,7 +47,6 @@ def upload_edf():
 def download_edf(filekey):
     """Returns a file saved in /tmp/ if associated with keymap"""
     # WARNING: Will error if key not available
-    # filename = netface().file_by_key(filekey)
     filename = ClassifierInterface(request.form['sid']).file_by_key(filekey)
     return send_from_directory(directory="/tmp/", filename=filename)
 
