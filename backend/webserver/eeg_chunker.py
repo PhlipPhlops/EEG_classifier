@@ -20,7 +20,10 @@ class EegChunker:
         # pickle dataframe to file
         df.to_pickle(self.save_path(sid))
 
-    @cache.memoize(timeout=60)
+    # This cacheing line beings to use memory exponentially
+    # it is in fact faster and more memory safe (compared to this line)
+    # to simply read from pickle every time
+    # @cache.memoize(timeout=60)
     def retrieve_from_pickle(self, sid):
         """Cached method to retrieve dataframe from a keyed pattern"""
         return pd.read_pickle(self.save_path(sid))

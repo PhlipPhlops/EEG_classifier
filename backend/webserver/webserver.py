@@ -38,7 +38,13 @@ def upload_edf():
     socketio.emit('edf uploaded', {}, room=sid)
 
     # Initiate classifier on filepath
-    response_data = ClassifierInterface(sid).initiate_classifier(filepath)
+    ### Classifier Disabled; blocking thread
+    #response_data = ClassifierInterface(sid).initiate_classifier(filepath)
+    response_data = {
+            "file_key": '',
+            "file_name": '',
+            "eeg_annotations": '{}'
+        }
 
     return make_response(jsonify(response_data))
 
