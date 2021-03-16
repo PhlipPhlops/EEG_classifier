@@ -3,73 +3,17 @@ To test,
 $ export FLASK_APP=web_server.py
 $ flask run
 """
-import os
-import string
-import random
-import dill
-from flask import Flask, request
-from flask import render_template, request, send_file, make_response, jsonify, send_from_directory
-from flask_cors import CORS, cross_origin
-from flask_socketio import SocketIO, send
-from multiprocessing import Manager
-from logging.config import dictConfig
+from flask import request, make_response, jsonify, send_from_directory
+from .app_config import app, socketio, logger
 
 from .classifier_interface import ClassifierInterface
 from .eeg_chunker import EegChunker
-from .extensions import cache
 
-
-## Configure Flask app
-app = Flask("backend", static_folder="../react/build", template_folder="../react/build")
-config = {
-    "SECRET_KEY": "dev",
-    "DEBUG": True
-}
-app.config.from_mapping(config)
-cache.init_app(app, config={'CACHE_TYPE': 'simple'})
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-## Setup CORS headers
-cors = CORS(app)
-
-## Pull out the logger for use
-dictConfig({
-    'version': 1,
-    'root': {
-        'level': 'INFO'
-    }
-})
-logger = app.logger
-
-## Classifier interface to be established on connection
-# manager = Manager()
-netface_dict = {}
 
 @socketio.on('connect')
 def establish_connection():
     # Handshake to verify connection
     ClassifierInterface(request.sid).establish_connection()
-
-def netface():
-    """Use an established interface bound to this sid
-    for requests
-
-    THERE MUST BE A request.form['sid'] MADE AVAILABLE
-    IN THE FORMDATA OF THE INCOMING REQUEST for this method
-
-    use like: netface().someFunction()
-    """
-    logger.info(f"verify {request.form['sid']}")
-    try:
-        sid = request.form['sid']
-        specific_netface = netface_dict[sid]
-        # with open('/tmp/'+sid) as pkl_file:
-        #     specific_netface = dill.load(pkl_file)
-        # specific_netface = ClassifierInterface(socketio, logger, from_dict=netface_dict)
-    except (KeyError):
-        logger.error(f"No associated netface with this sid: {request.form['sid']}")
-
-    return specific_netface
 
 
 @app.route("/edf-upload", methods=["POST"])

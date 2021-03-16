@@ -5,9 +5,8 @@ including classification, file transfer, data transfer, etc.
 import os
 import random
 import string
-from flask import Flask, request
-from flask_socketio import send, emit
 
+from .app_config import socketio
 from ..classify_epilepsy import EpilepsyClassifier
 from ..edf_reader import EDFReader
 
@@ -73,7 +72,7 @@ class ClassifierInterface:
         self.sid = sid
 
     def establish_connection(self):
-        emit('establish', {'sid': self.sid}, room=self.sid)
+        socketio.emit('establish', {'sid': self.sid}, room=self.sid)
 
     def initiate_classifier(self, filepath):
         # Read edf and register to interface
@@ -81,7 +80,7 @@ class ClassifierInterface:
 
         def on_percent(perc):
             """Callback to emit percent-done"""
-            emit('loading', {'percent': perc}, room=self.sid)
+            socketio.emit('loading', {'percent': perc}, room=self.sid)
 
         # Classify on the saved file and grab where its save name
         save_file = classify_on_edf(filepath, edf, percent_callback=on_percent)

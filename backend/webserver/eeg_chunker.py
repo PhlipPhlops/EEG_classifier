@@ -1,5 +1,5 @@
 import pandas as pd
-from .extensions import cache
+from .app_config import cache
 from ..edf_reader import EDFReader
 
 

@@ -47,3 +47,5 @@ dependencies:
   - flask_socketio
   - Flask-Caching
   - eventlet
+
+# for mne development version (fixes Annotations.to_data_frame() problem) run: $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
