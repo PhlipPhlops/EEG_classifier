@@ -1,7 +1,9 @@
 import React from 'react'
 import ReactECharts from 'echarts-for-react'
 
-import netface from '../api/classifier_interface';
+import netface from '../common/network_interface';
+import { connect } from 'react-redux';
+import store from '../common/reducers';
 
 class ElectrogramDisplay extends React.Component {
 
@@ -9,19 +11,35 @@ class ElectrogramDisplay extends React.Component {
     super(props)
     
     this.state = {
+      requestData: false,
       eegData: {}
     }
   }
   
   componentDidMount() {
-    // Download chunks (from index 0 -> arbitrary total)
-    // If it's too heavy, raise total for smaller chunks
-    this.requestData(0, 100) 
-    console.log(`Annotations: ${this.props.annotations}`)
+    store.subscribe(() => {
+      if (store.getState().fileUploadStatus === 'UPLOADED') {
+        this.setState({
+          requestData: true,
+        })
+      }
+    })
+  }
+
+  componentDidUpdate() {
+    if (this.state.requestData
+      && Object.keys(this.state.eegData).length === 0) {
+      // If data is flagged to be requested and no data has been filled,
+      // begin fetching data
+      this.requestData(0, 50)
+    }
   }
 
 
   requestData = (n, N) => {
+    // Download chunks (from index 0 -> arbitrary total)
+    // If it's too heavy, raise total for smaller chunks
+
     // Use || n == <somenumber> to early stop for testing
     if (n >= N) {
       let sum = 0
@@ -32,6 +50,7 @@ class ElectrogramDisplay extends React.Component {
       // Data has been loaded into state.eegData,
       // SetState to redraw (calling too often makes it quite slow)
       this.setState({})
+      console.log(store.getState())
       return
     }
 
@@ -106,6 +125,10 @@ class ElectrogramDisplay extends React.Component {
   }
 
 
+  /**
+   * This method configures the apache eCharts options to display multiple
+   * electrode signals plotted against time
+   */
   getOptions() {
     let series = []
     let grids = []
@@ -228,6 +251,13 @@ class ElectrogramDisplay extends React.Component {
   }
 
   render() {
+    if (store.getState().fileUploadStatus != 'UPLOADED') {
+      return <div></div>
+    } else {
+      console.log(store.getState())
+      console.log(this.state.eegData)
+    }
+
     return (
       <div style={{ backgroundColor: 'white', padding: 30, height:750}}>
         <ReactECharts

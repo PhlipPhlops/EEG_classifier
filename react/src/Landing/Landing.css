@@ -17,7 +17,7 @@
   align-self: start;
 }
 
-#uploadContainer {
+.upload {
   position: absolute;
   right: 0;
   bottom: 0;
