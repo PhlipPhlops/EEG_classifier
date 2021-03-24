@@ -31,7 +31,12 @@ class ElectrogramDisplay extends React.Component {
       && Object.keys(this.state.eegData).length === 0) {
       // If data is flagged to be requested and no data has been filled,
       // begin fetching data
-      this.requestData(0, 50)
+      // this.requestData(0, 50)
+      netface.streamData(30)
+        .then((data) => data.json())
+        .then((data) => {
+          console.log(data)
+        })
     }
   }
 

@@ -3,7 +3,7 @@ To test,
 $ export FLASK_APP=web_server.py
 $ flask run
 """
-from flask import request, make_response, jsonify, send_from_directory
+from flask import request, make_response, jsonify, send_from_directory, Response, stream_with_context
 from .app_config import app, socketio, logger
 
 from .classifier_interface import ClassifierInterface
@@ -56,6 +56,31 @@ def download_edf(filekey):
     filename = ClassifierInterface(request.form['sid']).file_by_key(filekey)
     return send_from_directory(directory="/tmp/", filename=filename)
 
+@app.route("/stream-test", methods=["POST"])
+def gen_stream_test():
+    def generate():
+        for i in range(30):
+            logger.info(f"Stream Test {i}")
+            yield jsonify({
+                "val": i
+            })
+    return Response(stream_with_context(generate()), content_type='application/json')
+
+@app.route("/stream-data", methods=["POST"])
+def generate_stream():
+    sid = request.form['sid']
+    num_chunks = int(request.form['num_chunks'])
+    def generate_chunks():
+        chunk_i = 0
+        chunker = EegChunker()
+        while chunk_i < num_chunks:
+            chunk_df = chunker.chunk_as_data_frame(sid, chunk_i, num_chunks)
+            chunk_i += 1
+            logger.info(f"CHUNK REQUESTED {chunk_i}/{num_chunks}")
+            yield jsonify({
+                "eeg_chunk": chunk_df.to_json()
+            })
+    return Response(stream_with_context(generate_chunks()), content_type='application/json', status=200)
 
 @app.route("/edf-chunk", methods=["POST"])
 def retrieve_chunk():

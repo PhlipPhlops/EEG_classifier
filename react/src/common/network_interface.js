@@ -55,6 +55,23 @@ class ClassifierInterface {
     return promise
   }
 
+  streamData(num_chunks) {
+    if (store.getState().fileUploadStatus != 'UPLOADED') {
+      throw 'EDF must be uploaded before requesting data'
+    }
+    let formData = new FormData();
+    formData.append('sid', this.socket.id)
+    formData.append('num_chunks', num_chunks)
+
+    return fetch(BASE_URL + '/stream-test', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "accept":"application/json",
+      }
+    })
+  }
+
   requestChunk(n, N) {
     if (store.getState().fileUploadStatus != 'UPLOADED') {
       throw 'EDF must be uploaded before requesting a chunk'
