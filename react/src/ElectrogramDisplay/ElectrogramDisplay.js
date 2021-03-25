@@ -11,30 +11,20 @@ class ElectrogramDisplay extends React.Component {
     super(props)
     
     this.state = {
-      requestData: false,
       eegData: {}
     }
   }
   
   componentDidMount() {
     store.subscribe(() => {
-      if (store.getState().serverStatus === 'UPLOADED') {
-        this.setState({
-          requestData: true,
-        })
+      if (store.getState().serverStatus === 'UPLOADED'
+        && Object.keys(this.state.eegData).length == 0)
+      {
+        this.setState({})
+        this.requestData(0, 100)
       }
     })
   }
-
-  componentDidUpdate() {
-    if (this.state.requestData
-      && Object.keys(this.state.eegData).length === 0) {
-      // If data is flagged to be requested and no data has been filled,
-      // begin fetching data
-      this.requestData(0, 50)
-    }
-  }
-
 
   requestData = (n, N) => {
     // Download chunks (from index 0 -> arbitrary total)
@@ -218,8 +208,8 @@ class ElectrogramDisplay extends React.Component {
           xAxisIndex: Object.keys(series),
           type: 'slider',
           top: '95%',
-          start: 0,
-          end: 10,
+          startValue: 0,
+          endValue: 2000,
           preventDefaultMouseMove: true,
         },
         {
@@ -236,8 +226,8 @@ class ElectrogramDisplay extends React.Component {
           id: 'eegGain',
           minSpan: 10,
           maxSpan: 100,
-          start: 25,
-          end: 75,          
+          start: 40,
+          end: 60,
         },{
           type: 'inside',
           yAxisIndex: Object.keys(series),
@@ -255,7 +245,6 @@ class ElectrogramDisplay extends React.Component {
       return <div></div>
     } else {
       console.log(store.getState())
-      console.log(this.state.eegData)
     }
 
     return (

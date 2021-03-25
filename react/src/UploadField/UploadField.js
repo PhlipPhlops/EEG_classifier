@@ -52,7 +52,6 @@ class UploadField extends React.Component {
   }
 
   getButtonResources() {
-    let status = this.state.status
     const resources = {
       'ATTEMPTING': {
         text: 'Connecting to server...',
@@ -76,7 +75,7 @@ class UploadField extends React.Component {
       }
     }
 
-    let resource = resources[status]
+    let resource = resources[this.state.status]
     if (resource == undefined) {
       throw Error('invalid resource key')
     } else {
