@@ -18,7 +18,7 @@ class ElectrogramDisplay extends React.Component {
   
   componentDidMount() {
     store.subscribe(() => {
-      if (store.getState().fileUploadStatus === 'UPLOADED') {
+      if (store.getState().serverStatus === 'UPLOADED') {
         this.setState({
           requestData: true,
         })
@@ -251,7 +251,7 @@ class ElectrogramDisplay extends React.Component {
   }
 
   render() {
-    if (store.getState().fileUploadStatus != 'UPLOADED') {
+    if (store.getState().serverStatus != 'UPLOADED') {
       return <div></div>
     } else {
       console.log(store.getState())

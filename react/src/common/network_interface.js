@@ -41,7 +41,7 @@ class ClassifierInterface {
 
     console.log(`UPLOADING TO: ${BASE_URL + '/edf-upload'}`)
     store.dispatch({
-      type: 'file/upload_file'
+      type: 'server/upload_file'
     })
 
     let promise = fetch(BASE_URL + '/edf-upload', {
@@ -56,7 +56,7 @@ class ClassifierInterface {
   }
 
   requestChunk(n, N) {
-    if (store.getState().fileUploadStatus != 'UPLOADED') {
+    if (store.getState().serverStatus != 'UPLOADED') {
       throw 'EDF must be uploaded before requesting a chunk'
     }
     let formData = new FormData();
@@ -90,7 +90,7 @@ class ClassifierInterface {
     // Ping pongs the server
     if (this.socket.id == response.sid) {
       store.dispatch({
-        type: 'socket/connection_established'
+        type: 'server/connection_established'
       })
       console.log('Neurogram connection established.')
       console.log(`SID: ${this.socket.id}`)
@@ -112,7 +112,7 @@ class ClassifierInterface {
   onEDFUploaded = () => {
     // Flag to tell electrogram display it can request data
     store.dispatch({
-      type: 'file/upload_successful'
+      type: 'server/upload_successful'
     })
   }
 
