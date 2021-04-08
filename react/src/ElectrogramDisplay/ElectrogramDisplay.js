@@ -153,10 +153,17 @@ class ElectrogramDisplay extends React.Component {
         data: [...Array(this.state.eegData[key].length).keys()],
         type: 'category',
         gridIndex: i,
+        showGrid: false,
         axisTick: {
-          show: false
+          show: false,
         },
         axisLabel: {
+          show: false,
+        },
+        axisLine: {
+          show: false,
+        },
+        splitLine: {
           show: false,
         },
         name: key,
@@ -169,9 +176,13 @@ class ElectrogramDisplay extends React.Component {
         axisLabel: {
           show: false,
         },
+        axisLine: {
+          show: false,
+        },
         splitLine: {
           show: false,
         },
+        showGrid: false,
         min: -1e-3,
         max: 1e-3,
       })
@@ -181,6 +192,10 @@ class ElectrogramDisplay extends React.Component {
         name: key,
         type: 'line',
         symbol: 'none',
+        lineStyle: {
+          width: 0.5,
+          color: 'black',
+        },
         gridIndex: i,
         yAxisIndex: i,
         xAxisIndex: i,
@@ -248,7 +263,7 @@ class ElectrogramDisplay extends React.Component {
     }
 
     return (
-      <div style={{ backgroundColor: 'white', padding: 30, height:750}}>
+      <div style={{ backgroundColor: 'white', padding: 30, height:850}}>
         <ReactECharts
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
