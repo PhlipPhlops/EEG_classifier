@@ -4,6 +4,9 @@ import ReactECharts from 'echarts-for-react'
 import netface from '../common/network_interface';
 import { connect } from 'react-redux';
 import store from '../common/reducers';
+import styled from 'styled-components';
+
+import EDSettingsBar from './EDSettingsBar';
 
 class ElectrogramDisplay extends React.Component {
 
@@ -263,14 +266,24 @@ class ElectrogramDisplay extends React.Component {
     }
 
     return (
-      <div style={{ backgroundColor: 'white', padding: 30, height:850}}>
+      <EDParent>
         <ReactECharts
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
           style={{height: '100%'}}/>
-      </div>
+        <EDSettingsBar/>
+      </EDParent>
+      // <div style={{ backgroundColor: 'white', padding: 30, height:window.innerHeight*(0.80)}}>
+      // </div>
     )
   }
 }
+
+const EDParent = styled.div`
+  background-color: white;
+  border: 3px solid green;
+  margin-top: 10vh;
+  height: 80vh;
+`;
 
 export default ElectrogramDisplay;

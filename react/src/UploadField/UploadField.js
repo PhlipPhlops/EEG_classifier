@@ -1,8 +1,9 @@
 import React from 'react';
-import './UploadField.css';
+// import './UploadField.css';
 import { saveAs } from 'file-saver';
 import netface from '../common/network_interface';
 import store from '../common/reducers';
+import styled from 'styled-components';
 
 // Image sources
 import file_upload from '../static/file_upload.svg';
@@ -87,18 +88,59 @@ class UploadField extends React.Component {
     const resource = this.getButtonResources()
 
     return (
-      <div className="fieldButton" onClick={resource.onClick}>
-        <input type="file"
+      <FieldButton onClick={resource.onClick}>
+        <InvisibleUpload type="file"
           ref={fileInput => this.fileInput = fileInput}
-          id="fileUpload"
           name="eegFile"
           onChange={this.onFileSelected}
-        />
-        <span className="text">{resource.text}</span>
-        <img className="uploadButton" src={resource.button} />
-      </div>
+          />
+        <ButtonText>{resource.text}</ButtonText>
+        <UploadIcon src={resource.button} />
+      </FieldButton>
     )
   }
 }
 
 export default UploadField;
+
+const FieldButton = styled.div`
+  height: 3.5rem;
+  border-radius: 1rem;
+  background-color: white;
+  
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  
+  color: #294a5d;
+  font-size: large;
+  /* Responsivity */
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  
+  border: 3px solid blue;
+  
+  &:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.35);
+    transition: opacity .5s ease-in-out;
+  }
+`;
+
+const ButtonText = styled.span`
+  font-weight: 700;
+  letter-spacing: .5px;
+  font-size: 25px;
+  padding: 0 4rem 0 7rem;
+`;
+
+const UploadIcon = styled.img`
+  height: 2.5rem;
+  padding: 1.5rem;
+`;
+
+const InvisibleUpload = styled.input`
+  visibility: hidden;
+  width: 0;
+  height: 0;
+`;
