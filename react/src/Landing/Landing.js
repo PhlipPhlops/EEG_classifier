@@ -1,5 +1,5 @@
 import React from 'react';
-import UploadField from '../UploadField/UploadField';
+import UploadField from '../components/UploadField';
 import ElectrogramDisplay from '../ElectrogramPage/ElectrogramDisplay';
 import styled from 'styled-components';
 import text_logo from '../static/text_logo.png';

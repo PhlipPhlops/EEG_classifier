@@ -11,14 +11,9 @@ class EDSettingsBar extends React.Component {
   }
 }
 
+export default EDSettingsBar;
+
 const ParentBar = styled.div`
   width: 100%;
-  height: 3rem;
-  border: 3px solid red;
+  background-image: linear-gradient(to right, blue, cyan);
 `;
-
-const TextField = styled.div`
-
-`;
-
-export default EDSettingsBar;

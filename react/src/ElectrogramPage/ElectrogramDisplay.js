@@ -236,14 +236,14 @@ class ElectrogramDisplay extends React.Component {
           top: '45%',
           filterMode: 'none',
 
-          zoomOnMouseWheel: true,
+          zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
           moveOnMouseMove: false,
           preventDefaultMouseMove: true,
 
           id: 'eegGain',
-          minSpan: 10,
-          maxSpan: 100,
+          minSpan: [40, 60],
+          maxSpan: [40, 60],
           start: 40,
           end: 60,
         },{
@@ -271,19 +271,15 @@ class ElectrogramDisplay extends React.Component {
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
           style={{height: '100%'}}/>
-        <EDSettingsBar/>
       </EDParent>
-      // <div style={{ backgroundColor: 'white', padding: 30, height:window.innerHeight*(0.80)}}>
-      // </div>
     )
   }
 }
 
+export default ElectrogramDisplay;
+
 const EDParent = styled.div`
   background-color: white;
-  border: 3px solid green;
-  margin-top: 10vh;
-  height: 80vh;
+  height: 100%;
+  padding: 5px;
 `;
-
-export default ElectrogramDisplay;
