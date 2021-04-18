@@ -14,6 +14,8 @@ class ElectrogramDisplay extends React.Component {
     super(props)
     
     this.state = {
+      isChunkDownloadLocked: false,
+      sampleRate: null,
       eegData: {}
     }
   }
@@ -21,10 +23,17 @@ class ElectrogramDisplay extends React.Component {
   componentDidMount() {
     store.subscribe(() => {
       if (store.getState().serverStatus === 'UPLOADED'
+        && !this.state.isChunkDownloadLocked
         && Object.keys(this.state.eegData).length == 0)
       {
-        this.setState({})
+        this.setState({isChunkDownloadLocked: true})
         this.requestData(0, 100)
+      }
+
+      if (store.getState().fileSampleRate
+        && !this.state.sampleRate)
+      {
+        this.setState({sampleRate: store.getState().fileSampleRate})
       }
     })
   }
@@ -264,6 +273,7 @@ class ElectrogramDisplay extends React.Component {
     } else {
       console.log(store.getState())
     }
+    console.log(this.state)
 
     return (
       <EDParent>

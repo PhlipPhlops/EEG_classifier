@@ -41,10 +41,8 @@ def upload_edf():
     ### Classifier Disabled; blocking thread
     #response_data = ClassifierInterface(sid).initiate_classifier(filepath)
     response_data = {
-            "file_key": '',
-            "file_name": '',
-            "eeg_annotations": '{}'
-        }
+        "sample_rate": chunker.get_sample_rate(sid, filepath)
+    }
 
     return make_response(jsonify(response_data))
 

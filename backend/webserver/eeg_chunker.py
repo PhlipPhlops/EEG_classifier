@@ -28,6 +28,10 @@ class EegChunker:
         """Cached method to retrieve dataframe from a keyed pattern"""
         return pd.read_pickle(self.save_path(sid))
 
+    def get_sample_rate(self, sid, filepath):
+        """Return the samplerate of the chunked file"""
+        return EDFReader(filepath).sample_rate
+
     def chunk_as_data_frame(self, sid, n, N):
         """Returns the nth chunk out of N total chunks
         of the data frame; specifically, all available electrodes

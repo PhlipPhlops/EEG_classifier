@@ -44,15 +44,20 @@ class ClassifierInterface {
       type: 'server/upload_file'
     })
 
-    let promise = fetch(BASE_URL + '/edf-upload', {
+    fetch(BASE_URL + '/edf-upload', {
       method: 'POST',
       body: formData,
       headers: {
         "accepts":"application/json"
       }
     })
-
-    return promise
+      .then(response => response.json())
+      .then(data => {
+        store.dispatch({
+          type: 'server/upload_successful',
+          payload: data,
+        })
+      })
   }
 
   requestChunk(n, N) {
@@ -110,10 +115,7 @@ class ClassifierInterface {
   }
 
   onEDFUploaded = () => {
-    // Flag to tell electrogram display it can request data
-    store.dispatch({
-      type: 'server/upload_successful'
-    })
+    console.log("Server received file successfully")
   }
 
   onDisconnect = (reason) => {
