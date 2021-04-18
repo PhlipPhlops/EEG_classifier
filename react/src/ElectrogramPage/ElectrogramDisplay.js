@@ -2,11 +2,8 @@ import React from 'react'
 import ReactECharts from 'echarts-for-react'
 
 import netface from '../common/network_interface';
-import { connect } from 'react-redux';
 import store from '../common/reducers';
 import styled from 'styled-components';
-
-import EDSettingsBar from './EDSettingsBar';
 
 class ElectrogramDisplay extends React.Component {
 
@@ -21,6 +18,8 @@ class ElectrogramDisplay extends React.Component {
   }
   
   componentDidMount() {
+    document.addEventListener("keydown", this.handleKeyDown);
+
     store.subscribe(() => {
       if (store.getState().serverStatus === 'UPLOADED'
         && !this.state.isChunkDownloadLocked
@@ -36,6 +35,79 @@ class ElectrogramDisplay extends React.Component {
         this.setState({sampleRate: store.getState().fileSampleRate})
       }
     })
+  }
+
+  handleKeyDown = (event) => {
+    if (!this.echartRef) return
+
+    let keyCodes = {
+      37: 'LEFT',
+      38: 'UP',
+      39: 'RIGHT',
+      40: 'DOWN',
+    }
+    let key = keyCodes[event.keyCode]
+    let sampleRate = store.getState().sampleRate
+    
+    if (key == 'LEFT' || key == 'RIGHT') {
+      let echart = this.echartRef.getEchartsInstance()
+      let xAxisZoom = echart.getOption().dataZoom[0]
+
+      let changeRate = sampleRate
+      if (event.ctrlKey) {
+        changeRate = changeRate * 10
+      }
+
+      if (key == 'LEFT') {
+        echart.dispatchAction({
+          type: 'dataZoom',
+          dataZoomIndex: 0,
+          startValue: xAxisZoom.startValue - changeRate,
+          endValue: xAxisZoom.endValue - changeRate,
+        })
+      }
+      if (key == 'RIGHT') {
+        echart.dispatchAction({
+          type: 'dataZoom',
+          dataZoomIndex: 0,
+          startValue: xAxisZoom.startValue + changeRate,
+          endValue: xAxisZoom.endValue + changeRate,
+        })
+      }
+    }
+
+    if (key == 'UP' || key == 'DOWN') {
+      let echart = this.echartRef.getEchartsInstance()
+      let yAxisZoom = echart.getOption().dataZoom[1]
+      let zoomChange = 1
+      if (key == 'UP') {
+        if (yAxisZoom.end - yAxisZoom.start <= zoomChange*2) {
+          // Handle datazoom collapsing to 0
+          echart.dispatchAction({
+            type: 'dataZoom',
+            dataZoomIndex: 1,
+            start: 49,
+            end: 51,
+          })
+        } else {
+          // Usual behavior
+          echart.dispatchAction({
+            type: 'dataZoom',
+            dataZoomIndex: 1,
+            start: yAxisZoom.start + zoomChange,
+            end: yAxisZoom.end - zoomChange,
+          })
+        }
+      }
+      if (key == 'DOWN') {
+        echart.dispatchAction({
+          type: 'dataZoom',
+          dataZoomIndex: 1,
+          start: yAxisZoom.start - zoomChange,
+          end: yAxisZoom.end + zoomChange,
+        })
+      }
+    }
   }
 
   requestData = (n, N) => {
@@ -136,28 +208,33 @@ class ElectrogramDisplay extends React.Component {
     let grids = []
     let xAxies = []
     let yAxies = []
+    let sampleRate = store.getState().sampleRate
 
     let keysArray = Object.keys(this.state.eegData)
+    let spacing = Math.ceil(200 / keysArray.length)
+    console.log("spacing")
+    console.log(spacing)
 
     // Values calculated in percent
     let height = Math.ceil(95 / keysArray.length)
     // Render each EEG to its own grid
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
-      let oflow_pad = 10
+      let oflow_pad = 5
       let grid_top = (i * height - oflow_pad) + "%"
       let grid_bottom = 100 - ((i + 1) * height + oflow_pad) + "%"
 
       grids.push({
-        left: "4%",
-        right: "2%",
-        bottom: grid_bottom,
+        left: '10%',
+        right: '2%',
         top: grid_top,
+        bottom: grid_bottom,
         show: false,
         tooltip: {
           show: true,
           trigger: 'axis',
         },
+        containLabel: false, // Help grids aligned by axis
       })
 
       xAxies.push({
@@ -170,13 +247,18 @@ class ElectrogramDisplay extends React.Component {
           show: false,
         },
         axisLabel: {
-          show: false,
+          show: (i == keysArray.length - 1), // Only show on last grid
+          interval: sampleRate - 1,
+          formatter: (value, index) => {
+            return value / sampleRate
+          }
         },
         axisLine: {
           show: false,
         },
         splitLine: {
-          show: false,
+          show: true,
+          interval: sampleRate - 1,
         },
         name: key,
         nameLocation: 'start',
@@ -234,9 +316,9 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           xAxisIndex: Object.keys(series),
           type: 'slider',
-          top: '95%',
+          bottom: '0%',
           startValue: 0,
-          endValue: 2000,
+          endValue: 10 * sampleRate,
           preventDefaultMouseMove: true,
         },
         {
@@ -248,13 +330,11 @@ class ElectrogramDisplay extends React.Component {
           zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
           moveOnMouseMove: false,
-          preventDefaultMouseMove: true,
+          preventDefaultMouseMove: false,
 
           id: 'eegGain',
-          minSpan: [40, 60],
-          maxSpan: [40, 60],
-          start: 40,
-          end: 60,
+          start: 45,
+          end: 55,
         },{
           type: 'inside',
           yAxisIndex: Object.keys(series),
@@ -280,7 +360,8 @@ class ElectrogramDisplay extends React.Component {
         <ReactECharts
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
-          style={{height: '100%'}}/>
+          style={{height: '100%'}}
+          />
       </EDParent>
     )
   }
