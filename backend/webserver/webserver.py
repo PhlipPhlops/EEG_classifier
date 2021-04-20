@@ -39,12 +39,12 @@ def upload_edf():
     socketio.emit('edf uploaded', {}, room=sid)
 
     # Initiate classifier on filepath
-    ### Classifier Disabled; blocking thread
-    def task():
-        ClassifierInterface(sid).initiate_classifier(filepath)
-    thread = Thread(target=task)
-    thread.daemon = True
-    thread.start()
+    ### Classifier Disabled; save EC2 resources while testing
+    # def task():
+    #     ClassifierInterface(sid).initiate_classifier(filepath)
+    # thread = Thread(target=task)
+    # thread.daemon = True
+    # thread.start()
 
     response_data = {
         "sample_rate": chunker.get_sample_rate(sid, filepath)
