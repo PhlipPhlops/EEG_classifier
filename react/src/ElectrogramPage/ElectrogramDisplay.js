@@ -26,6 +26,11 @@ class ElectrogramDisplay extends React.Component {
         && Object.keys(this.state.eegData).length == 0)
       {
         this.setState({isChunkDownloadLocked: true})
+        let echart = this.echartRef.getEchartsInstance()
+        echart.showLoading({
+          color: '#cccccc'
+        })
+
         this.requestData(0, 100)
       }
 
