@@ -9,6 +9,7 @@ from .app_config import app, socketio, logger
 from .classifier_interface import ClassifierInterface
 from .eeg_chunker import EegChunker
 
+from threading import Thread
 
 @socketio.on('connect')
 def establish_connection():
@@ -39,7 +40,12 @@ def upload_edf():
 
     # Initiate classifier on filepath
     ### Classifier Disabled; blocking thread
-    #response_data = ClassifierInterface(sid).initiate_classifier(filepath)
+    def task():
+        ClassifierInterface(sid).initiate_classifier(filepath)
+    thread = Thread(target=task)
+    thread.daemon = True
+    thread.start()
+
     response_data = {
         "sample_rate": chunker.get_sample_rate(sid, filepath)
     }

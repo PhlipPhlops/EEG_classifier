@@ -93,7 +93,7 @@ class ClassifierInterface:
             "file_key": file_key,
             ## Might break, was f.filename
             "file_name": save_file,
-            "eeg_annotations": edf.get_annotations_as_df().to_json()
+            # "eeg_annotations": edf.get_annotations_as_df().to_json()
         }
 
     def file_by_key(self, filekey):
