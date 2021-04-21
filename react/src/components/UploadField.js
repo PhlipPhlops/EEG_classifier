@@ -1,5 +1,4 @@
 import React from 'react';
-// import './UploadField.css';
 import { saveAs } from 'file-saver';
 import netface from '../common/network_interface';
 import store from '../common/reducers';

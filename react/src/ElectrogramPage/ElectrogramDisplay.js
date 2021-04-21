@@ -338,6 +338,10 @@ class ElectrogramDisplay extends React.Component {
       // Other Configuration options
       animation: false,
 
+      tooltip: {
+        show: true,
+      },
+
       dataZoom: [
         {
           show: true,

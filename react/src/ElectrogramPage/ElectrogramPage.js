@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import ElectrogramDisplay from './ElectrogramDisplay';
 import EDSettingsBar from './EDSettingsBar';
 import UploadField from '../components/UploadField';
+import FeedbackButton from '../components/FeedbackButton';
 
 import LogoBar from '../components/LogoBar';
 
@@ -18,6 +19,8 @@ class ElectrogramPage extends React.Component {
         <div />
         <EDSettingsBar />
         <UploadFieldParent>
+          <div />
+          <div /> {/** FeedbackButton goes here */}
           <div />
           <UploadField />
         </UploadFieldParent>
@@ -37,7 +40,7 @@ const PageWrapper = styled.div`
 
 const UploadFieldParent = styled.div`
   display: grid;
-  grid-template-columns: 64vw 35vw 1vw;
+  grid-template-columns: 2vw 20vw 42vw 35vw 1vw;
   padding-top: 5px;
   grid-template-rows: 2rem;
 `;
