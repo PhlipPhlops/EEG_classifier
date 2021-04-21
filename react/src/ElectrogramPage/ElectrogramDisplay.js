@@ -234,12 +234,16 @@ class ElectrogramDisplay extends React.Component {
         right: '2%',
         top: grid_top,
         bottom: grid_bottom,
-        show: false,
+        show: true,
         tooltip: {
           show: true,
           trigger: 'axis',
         },
         containLabel: false, // Help grids aligned by axis
+
+        // For figuring through config, remove later
+        borderColor: '#ccc',
+        borderWidth: 1
       })
 
       xAxies.push({
@@ -301,7 +305,25 @@ class ElectrogramDisplay extends React.Component {
         smooth: false,
         sampling: 'lttb',
 
-        data: this.state.eegData[key]
+        data: this.state.eegData[key],
+
+        markArea: {
+          tooltip: {
+            show: true,
+            formatter: () => 'This is a description of the area'
+          },
+          itemStyle: {
+            color: '#00FF0099',
+          },
+          data: [
+            [{
+              name: 'testMark',
+              xAxis: 200,
+            }, {
+              xAxis: 400
+            }]
+          ]
+        }
       })
     })
 
