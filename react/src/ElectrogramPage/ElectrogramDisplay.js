@@ -25,11 +25,14 @@ class ElectrogramDisplay extends React.Component {
         && !this.state.isChunkDownloadLocked
         && Object.keys(this.state.eegData).length == 0)
       {
+        // Calling bindEvents here as echart is already established
         this.setState({isChunkDownloadLocked: true})
         let echart = this.echartRef.getEchartsInstance()
         echart.showLoading({
           color: '#cccccc'
         })
+
+        this.bindClickEvents(echart);
 
         this.requestData(0, 100)
       }
@@ -39,6 +42,20 @@ class ElectrogramDisplay extends React.Component {
       {
         this.setState({sampleRate: store.getState().fileSampleRate})
       }
+    })
+  }
+
+  bindClickEvents = (echart) => {
+    echart.on('click', (event) => {
+      console.log(event)
+    })
+
+    let zr = echart.getZr()
+    zr.on('click', (params) => {
+      console.log(params)
+      console.log("in click")
+      // use chart.convertFromPixel()
+      // https://echarts.apache.org/examples/en/editor.html?c=line-pen
     })
   }
 
@@ -381,10 +398,7 @@ class ElectrogramDisplay extends React.Component {
   render() {
     if (store.getState().serverStatus != 'UPLOADED') {
       return <div></div>
-    } else {
-      console.log(store.getState())
     }
-    console.log(this.state)
 
     return (
       <EDParent>
