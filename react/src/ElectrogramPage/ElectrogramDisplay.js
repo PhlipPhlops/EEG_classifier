@@ -16,6 +16,12 @@ class ElectrogramDisplay extends React.Component {
       eegData: {}
     }
   }
+
+  /**
+   *
+   * Chart state management methods
+   *
+   */
   
   componentDidMount() {
     document.addEventListener("keydown", this.handleKeyDown);
@@ -45,18 +51,16 @@ class ElectrogramDisplay extends React.Component {
     })
   }
 
-  bindClickEvents = (echart) => {
-    echart.on('click', (event) => {
-      console.log(event)
-    })
 
-    let zr = echart.getZr()
-    zr.on('click', (params) => {
-      console.log(params)
-      console.log("in click")
-      // use chart.convertFromPixel()
-      // https://echarts.apache.org/examples/en/editor.html?c=line-pen
-    })
+  /**
+   * 
+   * Charts user interaction methods
+   * 
+   */
+
+  bindClickEvents = (echart) => {
+    let log = (event) => console.log(event)
+    echart.on('brushEnd', log)
   }
 
   handleKeyDown = (event) => {
@@ -131,6 +135,13 @@ class ElectrogramDisplay extends React.Component {
       }
     }
   }
+
+
+  /**
+   * 
+   * Charts data requests, organization, and options
+   * 
+   */
 
   requestData = (n, N) => {
     // Download chunks (from index 0 -> arbitrary total)
@@ -239,6 +250,7 @@ class ElectrogramDisplay extends React.Component {
 
     // Values calculated in percent
     let height = Math.ceil(95 / keysArray.length)
+
     // Render each EEG to its own grid
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
@@ -257,10 +269,7 @@ class ElectrogramDisplay extends React.Component {
           trigger: 'axis',
         },
         containLabel: false, // Help grids aligned by axis
-
-        // For figuring through config, remove later
-        borderColor: '#ccc',
-        borderWidth: 1
+        borderWidth: 0
       })
 
       xAxies.push({
@@ -344,7 +353,106 @@ class ElectrogramDisplay extends React.Component {
       })
     })
 
-    // Configure Chart
+    /**
+     * Configure backsplash grid for highlights and such
+     * Adds a grid at backsplashGridIndex that takes full height
+     * Adds an xAxis identical to the others
+     * Adds a series of 0s meant to be undisplayed,
+     *  just for markAreas to be applied to
+     */
+    let backsplashGridIndex = keysArray.length
+    let configureBacksplashGrid = () => {
+      if (backsplashGridIndex == 0) {
+        // Catch before data loads in
+        return
+      }
+      let arbitraryKey = keysArray[0]
+
+      grids.push({
+        left: '10%',
+        right: '2%',
+        top: '0%',
+        bottom: '0%',
+        show: true,
+        containLabel: false, // Help grids aligned by axis
+      })
+      yAxies.push({
+        type: 'value',
+        gridIndex: backsplashGridIndex,
+        axisLabel: {
+          show: false,
+        },
+        axisLine: {
+          show: false,
+        },
+        splitLine: {
+          show: false,
+        },
+        showGrid: false,
+        min: -1e-3,
+        max: 1e-3,
+      })
+      xAxies.push({
+        // Index of data as categories, for now
+        data: [...Array(this.state.eegData[arbitraryKey].length).keys()],
+        type: 'category',
+        gridIndex: backsplashGridIndex,
+        showGrid: false,
+        axisTick: {
+          show: false,
+        },
+        axisLabel: {
+          show: true,
+          interval: sampleRate - 1,
+          formatter: (value, index) => {
+            return value / sampleRate
+          }
+        },
+        axisLine: {
+          show: false,
+        },
+      })
+      series.push({
+        type: 'line',
+        symbol: 'none',
+        lineStyle: {
+          width: 0,
+          color: '#00000000',
+        },
+        gridIndex: backsplashGridIndex,
+        yAxisIndex: backsplashGridIndex,
+        xAxisIndex: backsplashGridIndex,
+        sampling: 'lttb',
+  
+        data: new Array(this.state.eegData[arbitraryKey].length).fill(0),
+  
+        markArea: {
+          tooltip: {
+            show: true,
+            formatter: () => 'This is a description of the area'
+          },
+          itemStyle: {
+            color: '#FFFF0099',
+          },
+          data: [
+            [{
+              name: 'testMark',
+              xAxis: 800,
+            }, {
+              xAxis: 1000
+            }]
+          ]
+        }
+      })
+    }
+    configureBacksplashGrid()
+
+    /**
+     * 
+     * The actual configuration for the chart
+     * Loads in all of the previously filled grids, xAxies, yAxies, and series
+     * 
+     */
     let options = {
       // Use the values configured above
       grid: grids,
@@ -357,6 +465,11 @@ class ElectrogramDisplay extends React.Component {
 
       tooltip: {
         show: true,
+      },
+
+      brush: {
+        toolbox: ['lineX'],
+        xAxisIndex: backsplashGridIndex
       },
 
       dataZoom: [
