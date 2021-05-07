@@ -9,6 +9,8 @@ class ElectrogramDisplay extends React.Component {
 
   constructor(props) {
     super(props)
+
+    this.backsplashGridIndex = 0;
     
     this.state = {
       isChunkDownloadLocked: false,
@@ -34,11 +36,10 @@ class ElectrogramDisplay extends React.Component {
         // Calling bindEvents here as echart is already established
         this.setState({isChunkDownloadLocked: true})
         let echart = this.echartRef.getEchartsInstance()
+        this.bindInteractionEvents()
         echart.showLoading({
           color: '#cccccc'
         })
-
-        this.bindClickEvents(echart);
 
         this.requestData(0, 100)
       }
@@ -58,9 +59,42 @@ class ElectrogramDisplay extends React.Component {
    * 
    */
 
-  bindClickEvents = (echart) => {
-    let log = (event) => console.log(event)
-    echart.on('brushEnd', log)
+  bindInteractionEvents = () => {
+    let echart = this.echartRef.getEchartsInstance()
+
+    // On brushEnd, add an annotation
+    echart.on('brushEnd', (params) => {
+      let coords = {
+        minX: params.areas[0].coordRange[0],
+        maxX: params.areas[0].coordRange[1]
+      }
+
+      // echart.setOption({
+      //   series: {
+      //     // gridIndex: this.backsplashGridIndex,
+      //     gridIndex: this.backsplashGridIndex,
+      //     yAxisIndex: this.backsplashGridIndex,
+      //     xAxisIndex: this.backsplashGridIndex,
+          
+      //     markArea: {
+      //       tooltip: {
+      //         show: true,
+      //       },
+      //       itemStyle: {
+      //         color: '#00FF0099',
+      //       },
+      //       data: [
+      //         [{
+      //           name: 'testMark',
+      //           xAxis: coords.minX,
+      //         }, {
+      //           xAxis: coords.maxX
+      //         }]
+      //       ]
+      //     }
+      //   }
+      // })
+    })
   }
 
   handleKeyDown = (event) => {
@@ -157,7 +191,6 @@ class ElectrogramDisplay extends React.Component {
       // Data has been loaded into state.eegData,
       // SetState to redraw (calling too often makes it quite slow)
       this.setState({})
-      console.log(store.getState())
       return
     }
 
@@ -332,24 +365,6 @@ class ElectrogramDisplay extends React.Component {
         sampling: 'lttb',
 
         data: this.state.eegData[key],
-
-        markArea: {
-          tooltip: {
-            show: true,
-            formatter: () => 'This is a description of the area'
-          },
-          itemStyle: {
-            color: '#00FF0099',
-          },
-          data: [
-            [{
-              name: 'testMark',
-              xAxis: 200,
-            }, {
-              xAxis: 400
-            }]
-          ]
-        }
       })
     })
 
@@ -360,7 +375,8 @@ class ElectrogramDisplay extends React.Component {
      * Adds a series of 0s meant to be undisplayed,
      *  just for markAreas to be applied to
      */
-    let backsplashGridIndex = keysArray.length
+    this.backsplashGridIndex = keysArray.length
+    let backsplashGridIndex = this.backsplashGridIndex
     let configureBacksplashGrid = () => {
       if (backsplashGridIndex == 0) {
         // Catch before data loads in
@@ -467,8 +483,15 @@ class ElectrogramDisplay extends React.Component {
         show: true,
       },
 
+      toolbox: {
+        orient: 'vertical',
+        feature: {
+          // restore: {},
+        }
+      },
+
       brush: {
-        toolbox: ['lineX'],
+        toolbox: ['lineX', 'keep'],
         xAxisIndex: backsplashGridIndex
       },
 
