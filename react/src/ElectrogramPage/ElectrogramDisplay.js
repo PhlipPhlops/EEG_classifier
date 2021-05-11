@@ -11,6 +11,7 @@ class ElectrogramDisplay extends React.Component {
     super(props)
 
     this.backsplashGridIndex = 0;
+    this.activeBrushAreas = [];
     
     this.state = {
       isChunkDownloadLocked: false,
@@ -59,10 +60,10 @@ class ElectrogramDisplay extends React.Component {
    * 
    */
 
-  /**
-   * Called on chart load, use to bind chart events
-   */
   bindInteractionEvents = () => {
+    /**
+     * Called on chart load, use to bind chart events
+     */
     let echart = this.echartRef.getEchartsInstance()
 
     // Flag to lock render into place
@@ -74,19 +75,49 @@ class ElectrogramDisplay extends React.Component {
       this.selectHorizontalMultiBrush()
     })
 
-    echart.on('brush', (params) => {
-      console.log(params);
-    })
+    echart.on('brushEnd', this.saveBrushAreasToState)
+  }
 
-    // On brushEnd, add an annotation
-    echart.on('brushEnd', (params) => {
-      let coords = {
-        minX: params.areas[0].coordRange[0],
-        maxX: params.areas[0].coordRange[1]
+  saveBrushAreasToState = (params) => {
+    console.log(params)
+    
+    this.activeBrushAreas = params.areas.map((area) => area.range)
+
+    console.log(this.activeBrushAreas)
+  }
+
+  selectHorizontalMultiBrush = () => {
+    /**
+     * Called on chart load to autoselect the brush
+     */
+    let echart = this.echartRef.getEchartsInstance()
+
+    echart.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'brush',
+      brushOption: {
+          brushType: 'lineX',
+          brushMode: 'multiple'
       }
+    });
+  }
 
-      console.log(coords)
+  selectionClear = () => {
+    /**
+     * Clears all active brush selections
+     */
+    let echart = this.echartRef.getEchartsInstance()
 
+    echart.dispatchAction({
+      type: 'brush',
+      command: 'clear',
+      areas: []
+    })
+    // Found the command in Burhs.ts
+    // https://github1s.com/apache/echarts/blob/f3471f0a7080e68f8819f7b000d32d73fb0820fb/src/component/toolbox/feature/Brush.ts
+  }
+
+  brushSelectionsToMarkArea = () => {
       // echart.setOption({
       //   series: {
       //     // gridIndex: this.backsplashGridIndex,
@@ -112,21 +143,7 @@ class ElectrogramDisplay extends React.Component {
       //     }
       //   }
       // })
-    })
-  }
-
-  selectHorizontalMultiBrush = () => {
-    // Hypothetically, when this is called, autoenables a horizontal select brush (multi)
-    let echart = this.echartRef.getEchartsInstance()
-
-    echart.dispatchAction({
-      type: 'takeGlobalCursor',
-      key: 'brush',
-      brushOption: {
-          brushType: 'lineX',
-          brushMode: 'multiple'
-      }
-    });
+    console.log('enter')
   }
 
   handleKeyDown = (event) => {
@@ -137,9 +154,22 @@ class ElectrogramDisplay extends React.Component {
       38: 'UP',
       39: 'RIGHT',
       40: 'DOWN',
+
+      8: 'BACKSPACE',
+      13: 'ENTER'
     }
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
+
+    if (key == 'BACKSPACE') {
+      this.selectionClear()
+      return
+    }
+
+    if (key == 'ENTER') {
+      this.brushSelectionsToMarkArea()
+      return
+    }
     
     if (key == 'LEFT' || key == 'RIGHT') {
       let echart = this.echartRef.getEchartsInstance()
@@ -517,9 +547,7 @@ class ElectrogramDisplay extends React.Component {
 
       toolbox: {
         orient: 'vertical',
-        feature: {
-          // restore: {},
-        }
+        show: false,
       },
 
       brush: {
