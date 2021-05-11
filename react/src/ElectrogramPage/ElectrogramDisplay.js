@@ -12,6 +12,7 @@ class ElectrogramDisplay extends React.Component {
 
     this.backsplashGridIndex = 0;
     this.activeBrushAreas = [];
+    this.activeMarkAreas = [];
     
     this.state = {
       isChunkDownloadLocked: false,
@@ -53,6 +54,9 @@ class ElectrogramDisplay extends React.Component {
     })
   }
 
+  onChartFirstRender() {
+    this.selectHorizontalMultiBrush()
+  }
 
   /**
    * 
@@ -71,21 +75,12 @@ class ElectrogramDisplay extends React.Component {
     echart.on('finished', () => {
       if (!chartFirstRender) return
       else chartFirstRender = false
-
-      this.selectHorizontalMultiBrush()
+      this.onChartFirstRender()
     })
 
     echart.on('brushEnd', this.saveBrushAreasToState)
   }
-
-  saveBrushAreasToState = (params) => {
-    console.log(params)
-    
-    this.activeBrushAreas = params.areas.map((area) => area.range)
-
-    console.log(this.activeBrushAreas)
-  }
-
+  
   selectHorizontalMultiBrush = () => {
     /**
      * Called on chart load to autoselect the brush
@@ -102,48 +97,66 @@ class ElectrogramDisplay extends React.Component {
     });
   }
 
+  saveBrushAreasToState = (params) => {
+    this.activeBrushAreas = params.areas.map((area) => area.coordRange)
+  }
+
   selectionClear = () => {
     /**
      * Clears all active brush selections
      */
     let echart = this.echartRef.getEchartsInstance()
 
+    this.activeBrushAreas = []
+
     echart.dispatchAction({
       type: 'brush',
       command: 'clear',
       areas: []
     })
-    // Found the command in Burhs.ts
+    // Found the command in echarts sourcecode Brush.ts
     // https://github1s.com/apache/echarts/blob/f3471f0a7080e68f8819f7b000d32d73fb0820fb/src/component/toolbox/feature/Brush.ts
   }
 
   brushSelectionsToMarkArea = () => {
-      // echart.setOption({
-      //   series: {
-      //     // gridIndex: this.backsplashGridIndex,
-      //     gridIndex: this.backsplashGridIndex,
-      //     yAxisIndex: this.backsplashGridIndex,
-      //     xAxisIndex: this.backsplashGridIndex,
-          
-      //     markArea: {
-      //       tooltip: {
-      //         show: true,
-      //       },
-      //       itemStyle: {
-      //         color: '#00FF0099',
-      //       },
-      //       data: [
-      //         [{
-      //           name: 'testMark',
-      //           xAxis: coords.minX,
-      //         }, {
-      //           xAxis: coords.maxX
-      //         }]
-      //       ]
-      //     }
-      //   }
-      // })
-    console.log('enter')
+    let echart = this.echartRef.getEchartsInstance()
+
+    // Merge selection areas into markAreas
+    this.activeMarkAreas = this.activeMarkAreas.concat(
+      this.activeBrushAreas.map((range) => {
+        return [
+          {
+            name: 'testMark',
+            description: 'test',
+            id: 'test1',
+            xAxis: range[0]
+          }, {
+            xAxis: range[1]
+          }
+        ]
+      })
+    )
+
+    echart.setOption({
+      series: {
+        gridIndex: this.backsplashGridIndex,
+        yAxisIndex: this.backsplashGridIndex,
+        xAxisIndex: this.backsplashGridIndex,
+        
+        markArea: {
+          tooltip: {
+            show: true,
+          },
+          itemStyle: {
+            color: '#00FF0099',
+          },
+          data: this.activeMarkAreas
+        }
+      }
+    })
+
+    // Clear selection and area
+    this.selectionClear()
   }
 
   handleKeyDown = (event) => {
