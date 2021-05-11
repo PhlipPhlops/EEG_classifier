@@ -169,9 +169,10 @@ class ElectrogramDisplay extends React.Component {
 
     echart.setOption({
       series: {
-        gridIndex: this.backsplashGridIndex,
-        yAxisIndex: this.backsplashGridIndex,
-        xAxisIndex: this.backsplashGridIndex,
+
+        name: 'backSplashSeries',
+
+        data: [],
         
         markArea: {
           id: 'markArea',
@@ -384,8 +385,8 @@ class ElectrogramDisplay extends React.Component {
 
     let keysArray = Object.keys(this.state.eegData)
     // Calculated in percents
-    let bottomPadding = 3.5
-    let height = 20
+    let bottomPadding = 5
+    let height = 10
     let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     // Render each EEG to its own grid
@@ -542,6 +543,8 @@ class ElectrogramDisplay extends React.Component {
         yAxisIndex: backsplashGridIndex,
         xAxisIndex: backsplashGridIndex,
         sampling: 'lttb',
+        
+        name: 'backSplashSeries',
   
         data: new Array(this.state.eegData[arbitraryKey].length).fill(0),
       })
@@ -583,7 +586,7 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           xAxisIndex: Object.keys(series),
           type: 'slider',
-          bottom: '0%',
+          bottom: '2%',
           startValue: 0,
           endValue: 10 * sampleRate,
           preventDefaultMouseMove: true,
@@ -596,6 +599,7 @@ class ElectrogramDisplay extends React.Component {
           type: 'slider',
           top: '45%',
           filterMode: 'none',
+          show: false,
 
           zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
