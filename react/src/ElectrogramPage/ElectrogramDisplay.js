@@ -383,25 +383,21 @@ class ElectrogramDisplay extends React.Component {
     let sampleRate = store.getState().sampleRate
 
     let keysArray = Object.keys(this.state.eegData)
-    let spacing = Math.ceil(200 / keysArray.length)
-    console.log("spacing")
-    console.log(spacing)
-
-    // Values calculated in percent
-    let height = Math.ceil(95 / keysArray.length)
+    // Calculated in percents
+    let bottomPadding = 3.5
+    let height = 20
+    let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     // Render each EEG to its own grid
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
-      let oflow_pad = 5
-      let grid_top = (i * height - oflow_pad) + 5 + "%"
-      let grid_bottom = (100 - ((i + 1) * height + oflow_pad)) + 3.5 + "%"
+      let grid_top = (i * interval) + "%"
 
       grids.push({
         left: '10%',
         right: '2%',
         top: grid_top,
-        bottom: grid_bottom,
+        height: height + "%",
         show: true,
         tooltip: {
           show: true,
