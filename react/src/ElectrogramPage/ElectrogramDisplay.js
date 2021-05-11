@@ -59,8 +59,24 @@ class ElectrogramDisplay extends React.Component {
    * 
    */
 
+  /**
+   * Called on chart load, use to bind chart events
+   */
   bindInteractionEvents = () => {
     let echart = this.echartRef.getEchartsInstance()
+
+    // Flag to lock render into place
+    let chartFirstRender = true
+    echart.on('finished', () => {
+      if (!chartFirstRender) return
+      else chartFirstRender = false
+
+      this.selectHorizontalMultiBrush()
+    })
+
+    echart.on('brush', (params) => {
+      console.log(params);
+    })
 
     // On brushEnd, add an annotation
     echart.on('brushEnd', (params) => {
@@ -68,6 +84,8 @@ class ElectrogramDisplay extends React.Component {
         minX: params.areas[0].coordRange[0],
         maxX: params.areas[0].coordRange[1]
       }
+
+      console.log(coords)
 
       // echart.setOption({
       //   series: {
@@ -95,6 +113,20 @@ class ElectrogramDisplay extends React.Component {
       //   }
       // })
     })
+  }
+
+  selectHorizontalMultiBrush = () => {
+    // Hypothetically, when this is called, autoenables a horizontal select brush (multi)
+    let echart = this.echartRef.getEchartsInstance()
+
+    echart.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'brush',
+      brushOption: {
+          brushType: 'lineX',
+          brushMode: 'multiple'
+      }
+    });
   }
 
   handleKeyDown = (event) => {
