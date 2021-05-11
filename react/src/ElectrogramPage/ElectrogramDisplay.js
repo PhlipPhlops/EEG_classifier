@@ -166,7 +166,9 @@ class ElectrogramDisplay extends React.Component {
 
   refreshMarkArea = () => {
     let echart = this.echartRef.getEchartsInstance()
-
+    echart.showLoading({
+      color: '#cccccc'
+    })
     echart.setOption({
       series: {
 
@@ -189,6 +191,7 @@ class ElectrogramDisplay extends React.Component {
         }
       }
     })
+    echart.hideLoading()
   }
 
   handleKeyDown = (event) => {
@@ -200,12 +203,19 @@ class ElectrogramDisplay extends React.Component {
       39: 'RIGHT',
       40: 'DOWN',
 
+      32: 'SPACEBAR',
       8: 'BACKSPACE',
       13: 'ENTER'
     }
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
 
+    // if (key == 'SPACEBAR') {
+    //   let echart = this.echartRef.getEchartsInstance()
+    //   echart.showLoading()
+    //   return
+    // }
+    
     if (key == 'BACKSPACE') {
       this.selectionClear()
       return
