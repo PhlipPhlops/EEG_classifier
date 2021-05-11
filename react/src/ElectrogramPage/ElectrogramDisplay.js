@@ -79,6 +79,13 @@ class ElectrogramDisplay extends React.Component {
     })
 
     echart.on('brushEnd', this.saveBrushAreasToState)
+
+    // Catch markArea events
+    echart.on('dblclick', (event) => {
+      if (event.componentType === 'markArea') {
+        this.deleteMarkArea(event)
+      }
+    })
   }
   
   selectHorizontalMultiBrush = () => {
@@ -119,8 +126,6 @@ class ElectrogramDisplay extends React.Component {
   }
 
   brushSelectionsToMarkArea = () => {
-    let echart = this.echartRef.getEchartsInstance()
-
     // Merge selection areas into markAreas
     this.activeMarkAreas = this.activeMarkAreas.concat(
       this.activeBrushAreas.map((range) => {
@@ -136,6 +141,31 @@ class ElectrogramDisplay extends React.Component {
         ]
       })
     )
+
+    this.refreshMarkArea()
+
+    this.selectionClear()
+  }
+
+  deleteMarkArea = (event) => {
+    console.log(event)
+    let areaCoords = [
+      event.data.coord[0][0], // minX
+      event.data.coord[1][0], // maxX
+    ]
+
+    // Filter the one data with these coords from the markArea array
+    this.activeMarkAreas = this.activeMarkAreas.filter(
+      // If either minX or maxX don't match, keep the data
+      markArea => markArea[0].xAxis != areaCoords[0] ||
+                  markArea[1].xAxis != areaCoords[1]
+    )
+
+    this.refreshMarkArea()
+  }
+
+  refreshMarkArea = () => {
+    let echart = this.echartRef.getEchartsInstance()
 
     echart.setOption({
       series: {
@@ -154,9 +184,6 @@ class ElectrogramDisplay extends React.Component {
         }
       }
     })
-
-    // Clear selection and area
-    this.selectionClear()
   }
 
   handleKeyDown = (event) => {
