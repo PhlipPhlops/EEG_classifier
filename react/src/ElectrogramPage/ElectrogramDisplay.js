@@ -174,6 +174,8 @@ class ElectrogramDisplay extends React.Component {
         xAxisIndex: this.backsplashGridIndex,
         
         markArea: {
+          id: 'markArea',
+          name: 'markArea',
           tooltip: {
             show: true,
           },
@@ -181,6 +183,8 @@ class ElectrogramDisplay extends React.Component {
             color: '#00FF0099',
           },
           data: this.activeMarkAreas
+          //     show: true,
+          //     formatter: () => 'This is a description of the area'
         }
       }
     })
@@ -390,8 +394,8 @@ class ElectrogramDisplay extends React.Component {
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
       let oflow_pad = 5
-      let grid_top = (i * height - oflow_pad) + "%"
-      let grid_bottom = 100 - ((i + 1) * height + oflow_pad) + "%"
+      let grid_top = (i * height - oflow_pad) + 5 + "%"
+      let grid_bottom = (100 - ((i + 1) * height + oflow_pad)) + 3.5 + "%"
 
       grids.push({
         left: '10%',
@@ -402,6 +406,7 @@ class ElectrogramDisplay extends React.Component {
         tooltip: {
           show: true,
           trigger: 'axis',
+          showDelay: 25
         },
         containLabel: false, // Help grids aligned by axis
         borderWidth: 0
@@ -543,24 +548,6 @@ class ElectrogramDisplay extends React.Component {
         sampling: 'lttb',
   
         data: new Array(this.state.eegData[arbitraryKey].length).fill(0),
-  
-        markArea: {
-          tooltip: {
-            show: true,
-            formatter: () => 'This is a description of the area'
-          },
-          itemStyle: {
-            color: '#FFFF0099',
-          },
-          data: [
-            [{
-              name: 'testMark',
-              xAxis: 800,
-            }, {
-              xAxis: 1000
-            }]
-          ]
-        }
       })
     }
     configureBacksplashGrid()
@@ -604,6 +591,9 @@ class ElectrogramDisplay extends React.Component {
           startValue: 0,
           endValue: 10 * sampleRate,
           preventDefaultMouseMove: true,
+
+          zoomOnMouseWheel: false,
+          moveOnMouseWheel: false,
         },
         {
           yAxisIndex: Object.keys(series),
