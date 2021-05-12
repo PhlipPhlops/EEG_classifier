@@ -43,7 +43,7 @@ class ElectrogramDisplay extends React.Component {
           color: '#cccccc'
         })
 
-        this.requestData(0, 100)
+        this.requestData(0, 1)
       }
 
       if (store.getState().fileSampleRate
@@ -125,6 +125,9 @@ class ElectrogramDisplay extends React.Component {
     // https://github1s.com/apache/echarts/blob/f3471f0a7080e68f8819f7b000d32d73fb0820fb/src/component/toolbox/feature/Brush.ts
   }
 
+  /**
+   * MarkArea methods
+   */
   brushSelectionsToMarkArea = () => {
     // Merge selection areas into markAreas
     this.activeMarkAreas = this.activeMarkAreas.concat(
@@ -165,10 +168,10 @@ class ElectrogramDisplay extends React.Component {
   }
 
   refreshMarkArea = () => {
+    // Save markAreas to backend
+
+    // Draw all active Mark Areas
     let echart = this.echartRef.getEchartsInstance()
-    echart.showLoading({
-      color: '#cccccc'
-    })
     echart.setOption({
       series: {
 
@@ -191,7 +194,12 @@ class ElectrogramDisplay extends React.Component {
         }
       }
     })
-    echart.hideLoading()
+  }
+
+  sendMarkAreaToNetwork = () => {
+    // this.activeMarkAreas;
+
+
   }
 
   handleKeyDown = (event) => {
@@ -387,20 +395,22 @@ class ElectrogramDisplay extends React.Component {
    * electrode signals plotted against time
    */
   getOptions() {
-    let series = []
     let grids = []
     let xAxies = []
     let yAxies = []
+    let series = []
+    
     let sampleRate = store.getState().sampleRate
-
     let keysArray = Object.keys(this.state.eegData)
-    // Calculated in percents
+
+    // Layout configuration
     let bottomPadding = 5
     let height = 10
     let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
-    // Render each EEG to its own grid
     keysArray.forEach((key) => {
+      // configure a grid, xAxis, yAxis, and series for each EEG electrode
+
       let i = keysArray.indexOf(key)
       let grid_top = (i * interval) + "%"
 
@@ -581,11 +591,13 @@ class ElectrogramDisplay extends React.Component {
         show: true,
       },
 
+      // toolbox hidden
       toolbox: {
         orient: 'vertical',
         show: false,
       },
 
+      // Brush allows for selection that gets turned into markAreas
       brush: {
         toolbox: ['lineX', 'keep'],
         xAxisIndex: backsplashGridIndex
