@@ -43,7 +43,7 @@ class ElectrogramDisplay extends React.Component {
           color: '#cccccc'
         })
 
-        this.requestData(0, 1)
+        this.requestData(0, 100)
       }
 
       if (store.getState().fileSampleRate
@@ -307,6 +307,7 @@ class ElectrogramDisplay extends React.Component {
     // If it's too heavy, raise total for smaller chunks
 
     // Use || n == <somenumber> to early stop for testing
+    // if (n == 5) {
     if (n >= N) {
       let sum = 0
       for (let key in this.state.eegData) {

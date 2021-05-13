@@ -6,8 +6,6 @@ import json
 ## Constants
 # Points to a file in /tmp/ that fills with key/val pairs
 SID_FILE_MAP_FILENAME = '/tmp/sid_to_file_map.json'
-# Force save all files to tmp
-PREFIX = '/tmp/'
 
 def _getMapFromFile():
   try:
@@ -22,8 +20,6 @@ def _saveMapToFile(sf_map):
   json.dump(sf_map, f)
 
 def saveFilenameToSession(sid, filename):
-  if '/' in filename:
-    raise Exception('Can only save file name not file paths (input contains "/")')
   sf_map = _getMapFromFile()
   sf_map[sid] = filename
   _saveMapToFile(sf_map)

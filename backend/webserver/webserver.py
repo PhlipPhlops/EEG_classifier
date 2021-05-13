@@ -32,19 +32,22 @@ def upload_anytype_eeg():
     f.save(og_filepath)
     # Convert file to RAW
     #   Read from main 3 types: edf, nihon, cnt
-    path = save_agnostic_to_edf(og_filepath)
-    logger.info(f'PATH IS {path}')
-
-    # Either cache if possible or save to .edf file
+    # Path contains '/tmp/'
+    edf_path = save_agnostic_to_edf(og_filepath)
 
     # Tell session manager where .edf is
+    saveFilenameToSession(sid, edf_path)
 
-    # Using eegchunker, cache to dataframe
-    # Tell client it's ready to request data chunks
+    # Cache the edf as a dataframe
+    chunker = EegChunker()
+    chunker.cache_eeg_dataframe(sid, edf_path)
+
+    # Tell client we're ready for it to request data chunks
+    socketio.emit('edf uploaded', {}, room=sid)
 
     # Respond with sample rate
     response_data = {
-        "sample_rate": 10000
+        "sample_rate": chunker.get_sample_rate(sid, edf_path)
     }
 
     return make_response(jsonify(response_data))
@@ -56,6 +59,8 @@ def upload_edf():
     and save the result. Then respond with the key from
     annotated file so it can be retrieved later, along with
     the data so it can be rendered
+
+    ### LEGACY ENDPOINT
     """
     sid = request.form['sid']
     logger.info(f"EDF-UPLOAD: {sid}")
