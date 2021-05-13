@@ -14,6 +14,7 @@ class UploadField extends React.Component {
 
   constructor(props) {
     super(props)
+    this.filename = '';
     this.state = {
       status: store.getState().serverStatus
     }
@@ -31,6 +32,7 @@ class UploadField extends React.Component {
   onFileSelected = (e) => {
     // Upload file immediately
     let file = e.target.files[0]
+    this.filename = file.name
     netface.uploadFile(file)
   }
 
@@ -44,7 +46,7 @@ class UploadField extends React.Component {
     netface.downloadByFilekey(this.state.filekey)
       .then((response) => response.blob())
       .then((blob) => {
-        saveAs(blob, "ng-annotated_" + this.state.filename)
+        saveAs(blob, this.filename)
       })
       .catch((err) => {
         console.log(err)
