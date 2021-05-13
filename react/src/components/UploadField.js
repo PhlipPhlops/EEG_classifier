@@ -71,7 +71,7 @@ class UploadField extends React.Component {
         onClick: () => console.log('Loading...')
       },
       'UPLOADED': {
-        text: 'Download Currently Unavailable',
+        text: 'Download your changes to file',
         button: file_download,
         onClick: this.downloadFile
       }
