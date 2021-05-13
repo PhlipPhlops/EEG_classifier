@@ -4,6 +4,7 @@ events to the client
 from .app_config import socketio
 
 class SocketInterface:
+  # TODO: convert SessionID to currently active socket id
 
   def establish_connection(self, sid):
     socketio.emit('establish', {'sid': sid}, room=sid)
