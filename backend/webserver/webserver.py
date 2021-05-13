@@ -56,8 +56,9 @@ def upload_edf():
 @app.route("/edf-download/<filekey>", methods=["POST"])
 def download_edf(filekey):
     """Returns a file saved in /tmp/ if associated with keymap"""
+    sid = request.form['sid']
     # WARNING: Will error if key not available
-    filename = ClassifierInterface(request.form['sid']).file_by_key(filekey)
+    filename = ClassifierInterface(sid).file_by_key(filekey)
     return send_from_directory(directory="/tmp/", filename=filename)
 
 
