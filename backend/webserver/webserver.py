@@ -8,13 +8,15 @@ from .app_config import app, socketio, logger
 
 from .classifier_interface import ClassifierInterface
 from .eeg_chunker import EegChunker
+from .socket_interface import SocketInterface
+from .session_manager import saveFilenameToSession, getFilenameBySid
 
 from threading import Thread
 
 @socketio.on('connect')
 def establish_connection():
     # Handshake to verify connection
-    ClassifierInterface(request.sid).establish_connection()
+    SocketInterface().establish_connection(request.sid)
 
 
 @app.route("/edf-upload", methods=["POST"])
@@ -31,6 +33,9 @@ def upload_edf():
     f = request.files['file']
     filepath = "/tmp/" + f.filename
     f.save(filepath)
+
+    # Tell session manager where it is
+    saveFilenameToSession(sid, f.filename)
 
     # Cache the edf as a dataframe
     chunker = EegChunker()
@@ -57,8 +62,8 @@ def upload_edf():
 def download_edf(filekey):
     """Returns a file saved in /tmp/ if associated with keymap"""
     sid = request.form['sid']
-    # WARNING: Will error if key not available
-    filename = ClassifierInterface(sid).file_by_key(filekey)
+    filename = getFilenameBySid(sid)
+    logger.info(f'Logfieleee {filename}')
     return send_from_directory(directory="/tmp/", filename=filename)
 
 
