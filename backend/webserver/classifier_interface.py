@@ -11,6 +11,9 @@ from ..classify_epilepsy import EpilepsyClassifier
 from ..edf_reader import EDFReader
 
 
+# TODO: CURRENTLY BROKEN AFTER MIGRATION TO SOCKET INTERFACE AND SESSION MANAGER
+
+
 def classify_on_edf(filepath, edf, percent_callback=None):
     """Runs the (long) method to classify epileptic
     discharges on EDF dta
