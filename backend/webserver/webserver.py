@@ -10,6 +10,7 @@ from .classifier_interface import ClassifierInterface
 from .eeg_chunker import EegChunker
 from .socket_interface import SocketInterface
 from .session_manager import saveFilenameToSession, getFilenameBySid
+from .eeg_reader import save_agnostic_to_edf
 
 from threading import Thread
 
@@ -18,7 +19,7 @@ def establish_connection():
     # Handshake to verify connection
     SocketInterface().establish_connection(request.sid)
 
-@app.route("/eeg-upload", methodss=["POST"])
+@app.route("/eeg-upload", methods=["POST"])
 def upload_anytype_eeg():
     """Handles file upload of any supported type. Caches
     the file so its data is workable and annotations accessible
@@ -26,8 +27,13 @@ def upload_anytype_eeg():
     sid = request.form['sid']
     f = request.files['file']
 
+    # Save to tmp
+    og_filepath = "/tmp/" + f.filename
+    f.save(og_filepath)
     # Convert file to RAW
     #   Read from main 3 types: edf, nihon, cnt
+    path = save_agnostic_to_edf(og_filepath)
+    logger.info(f'PATH IS {path}')
 
     # Either cache if possible or save to .edf file
 
@@ -37,6 +43,11 @@ def upload_anytype_eeg():
     # Tell client it's ready to request data chunks
 
     # Respond with sample rate
+    response_data = {
+        "sample_rate": 10000
+    }
+
+    return make_response(jsonify(response_data))
 
 
 @app.route("/edf-upload", methods=["POST"])

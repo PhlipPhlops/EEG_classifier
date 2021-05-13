@@ -48,7 +48,7 @@ class ClassifierInterface {
       type: 'server/upload_file'
     })
 
-    fetch(BASE_URL + '/edf-upload', {
+    fetch(BASE_URL + '/eeg-upload', {
       method: 'POST',
       body: formData,
       headers: {
