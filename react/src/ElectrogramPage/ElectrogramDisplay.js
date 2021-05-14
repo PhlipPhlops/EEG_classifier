@@ -161,9 +161,6 @@ class ElectrogramDisplay extends React.Component {
   }
 
   refreshMarkArea = (saveToNetwork) => {
-    // Save markAreas to backend
-    console.log('refresh')
-    console.log(this.activeMarkAreas)
 
     // Draw all active Mark Areas
     let echart = this.echartRef.getEchartsInstance()
@@ -217,6 +214,7 @@ class ElectrogramDisplay extends React.Component {
       durations.push((area[1].xAxis - area[0].xAxis) / sr)
       descriptions.push(area[0].description)
     })
+
     netface.uploadAnnotations(onsets, durations, descriptions)
   }
 
@@ -231,26 +229,22 @@ class ElectrogramDisplay extends React.Component {
      * }
      */
     let sr = store.getState().sampleRate
-    let onsets = data['onset']
+    let onsets = data['onset'] // Onsets from network is in Milliseconds
     let durations = data['duration']
     let descriptions = data['description']
 
-    // console.log("IN NETOWRK ANNO")
-    // console.log(data)
-    // console.log(sr)
-
-    // THIS METHOD IS WRONG
+    let secToMilli = (num) => num / 1000
 
     for (let i = 0; i < Object.values(onsets).length; i++) {
-      let minX = Math.ceil(onsets[i] * sr)
-      let maxX = Math.ceil(durations[i])
+      let minX = Math.ceil(secToMilli(onsets[i]) * sr)
+      let maxX = Math.ceil(durations[i] * sr) + minX
       let desc = descriptions[i]
 
       this.activeMarkAreas.push(
         [
           {
             description: desc,
-            xAxis: i*sr
+            xAxis: minX
           }, {
             xAxis: maxX
           }
@@ -278,16 +272,15 @@ class ElectrogramDisplay extends React.Component {
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
 
-    if (key == 'SPACEBAR') {
-      netface.requestAnnotations()
-        .then(annos => {
-          console.log('spacebar')
-          console.log(annos)
-          console.log(this.activeMarkAreas)
-          // this.networkAnnotationsToMarkArea(annos)
-        })
-      return
-    }
+    // if (key == 'SPACEBAR') {
+    //   netface.requestAnnotations()
+    //     .then(annos => {
+    //       console.log('Annotations from network:')
+    //       console.log(annos)
+    //       // this.networkAnnotationsToMarkArea(annos)
+    //     })
+    //   return
+    // }
     
     if (key == 'BACKSPACE') {
       this.selectionClear()

@@ -63,7 +63,6 @@ def save_annotations_to_file():
     durations = list(map(float, request.form['durations'].split(',')))
     # TODO: Clean this up for descriptions with commas
     descriptions = request.form['descriptions'].split(',')
-    logger.info(onsets)
     # Find file
     filename = getFilenameBySid(sid)
     # Load as raw
@@ -82,7 +81,6 @@ def get_annotations_from_file():
     sid = request.form['sid']
     filename = getFilenameBySid(sid)
     edf = EDFReader(filename)
-    logger.info(edf.get_annotations_as_df())
     return edf.get_annotations_as_df().to_json()
 
 
