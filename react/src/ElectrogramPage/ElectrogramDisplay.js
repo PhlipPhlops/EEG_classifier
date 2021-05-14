@@ -43,13 +43,7 @@ class ElectrogramDisplay extends React.Component {
           color: '#cccccc'
         })
 
-        this.requestData(0, 100)
-      }
-
-      if (store.getState().fileSampleRate
-        && !this.state.sampleRate)
-      {
-        this.setState({sampleRate: store.getState().fileSampleRate})
+        this.requestData(0, 10)
       }
     })
   }
@@ -194,12 +188,38 @@ class ElectrogramDisplay extends React.Component {
         }
       }
     })
+
+    this.saveMarkAreasToNetwork()
   }
 
-  sendMarkAreaToNetwork = () => {
-    // this.activeMarkAreas;
+  saveMarkAreasToNetwork = () => {
+    // Needs onset, duration, description    
+    /**
+     * [ Current format
+          {
+            name: 'testMark',
+            description: 'test',
+            id: 'test1',
+            xAxis: range[0]
+          }, {
+            xAxis: range[1]
+          }
+        ]
+     */
+    let onsets = []
+    let durations = []
+    let descriptions = []
+    let sr = store.getState().sampleRate
 
+    console.log("smaple rate")
+    console.log(sr)
 
+    this.activeMarkAreas.forEach((area) => {
+      onsets.push(area[0].xAxis / sr)
+      durations.push((area[1].xAxis - area[0].xAxis) / sr)
+      descriptions.push(area[0].description)
+    })
+    netface.uploadAnnotations(onsets, durations, descriptions)
   }
 
   handleKeyDown = (event) => {

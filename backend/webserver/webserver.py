@@ -11,6 +11,7 @@ from .eeg_chunker import EegChunker
 from .socket_interface import SocketInterface
 from .session_manager import saveFilenameToSession, getFilenameBySid
 from .eeg_reader import save_agnostic_to_edf
+from ..edf_reader import EDFReader, write_edf
 
 from threading import Thread
 
@@ -51,6 +52,36 @@ def upload_anytype_eeg():
     }
 
     return make_response(jsonify(response_data))
+
+
+@app.route("/set-annotations", methods=["POST"])
+def save_annotations_to_file():
+    """Processes annotations and saves to relevant file
+    """
+    sid = request.form['sid']
+    onsets = list(map(float, request.form['onsets'].split(',')))
+    durations = list(map(float, request.form['durations'].split(',')))
+    descriptions = request.form['descriptions']
+    logger.info(onsets)
+    # Find file
+    filename = getFilenameBySid(sid)
+    # Load as raw
+    edf = EDFReader(filename)
+    # Set annotations
+    edf.set_annotations(onsets, durations, descriptions)
+    # Save back to file
+    write_edf(edf.raw_edf, filename, overwrite=True)
+    # Return the saved annotations
+    return edf.get_annotations_as_df().to_json()
+
+@app.route("/get-annotations", methods=["POST"])
+def get_annotations_from_file():
+    """Grabs annotations already stored in file
+    """
+    sid = request.form['sid']
+    filename = getFilenameBySid(sid)
+    edf = EDFReader(filename)
+    return edf.get_annotations_as_df().to_json()
 
 
 @app.route("/edf-upload", methods=["POST"])

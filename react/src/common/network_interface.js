@@ -64,6 +64,29 @@ class ClassifierInterface {
       })
   }
 
+  uploadAnnotations(onsets, durations, descriptions) {
+    let formData = new FormData()
+    formData.append('sid', this.sid)
+    formData.append('onsets', onsets)
+    formData.append('durations', durations)
+    formData.append('descriptions', descriptions)
+
+    console.log(onsets, durations, descriptions)
+
+    fetch(BASE_URL + '/set-annotations', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "accepts":"application/json"
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('annotations resp')
+        console.log(data)
+      })
+  }
+
   requestChunk(n, N) {
     if (store.getState().serverStatus != 'UPLOADED') {
       throw 'EDF must be uploaded before requesting a chunk'

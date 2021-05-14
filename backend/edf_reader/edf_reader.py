@@ -38,6 +38,10 @@ class EDFReader:
         annotations = mne.read_annotations(self.file_path)
         return annotations.to_data_frame()
 
+    def set_annotations(self, onsets, durations, descriptions):
+        annotations = mne.Annotations(onsets, durations, descriptions)
+        self.raw_edf.set_annotations(annotations)
+
     def data_to_resampled_matrix(self, new_samplerate):
         data = self.data_to_standard_matrix()
         # new num samples = length of data * (new_samplerate / old_samplerate)
