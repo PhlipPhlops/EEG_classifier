@@ -145,7 +145,6 @@ class ElectrogramDisplay extends React.Component {
   }
 
   deleteMarkArea = (event) => {
-    console.log(event)
     let areaCoords = [
       event.data.coord[0][0], // minX
       event.data.coord[1][0], // maxX
@@ -161,8 +160,10 @@ class ElectrogramDisplay extends React.Component {
     this.refreshMarkArea()
   }
 
-  refreshMarkArea = () => {
+  refreshMarkArea = (saveToNetwork) => {
     // Save markAreas to backend
+    console.log('refresh')
+    console.log(this.activeMarkAreas)
 
     // Draw all active Mark Areas
     let echart = this.echartRef.getEchartsInstance()
@@ -189,13 +190,13 @@ class ElectrogramDisplay extends React.Component {
       }
     })
 
-    this.saveMarkAreasToNetwork()
+    if (saveToNetwork == undefined || saveToNetwork)
+      this.saveMarkAreasToNetwork()
   }
 
-  saveMarkAreasToNetwork = () => {
-    // Needs onset, duration, description    
-    /**
-     * [ Current format
+  saveMarkAreasToNetwork = () => { 
+    /** Current format
+     * [
           {
             name: 'testMark',
             description: 'test',
@@ -211,9 +212,6 @@ class ElectrogramDisplay extends React.Component {
     let descriptions = []
     let sr = store.getState().sampleRate
 
-    console.log("smaple rate")
-    console.log(sr)
-
     this.activeMarkAreas.forEach((area) => {
       onsets.push(area[0].xAxis / sr)
       durations.push((area[1].xAxis - area[0].xAxis) / sr)
@@ -221,6 +219,48 @@ class ElectrogramDisplay extends React.Component {
     })
     netface.uploadAnnotations(onsets, durations, descriptions)
   }
+
+  networkAnnotationsToMarkArea = (data) => {
+    // Called once after data loads in
+    /**
+     * Current format
+     * {
+     *  description: {0: ---, 1: ---}
+     *  duration: {0: ---, 1: ---}
+     *  onset: {0: ---, 1: ---}
+     * }
+     */
+    let sr = store.getState().sampleRate
+    let onsets = data['onset']
+    let durations = data['duration']
+    let descriptions = data['description']
+
+    // console.log("IN NETOWRK ANNO")
+    // console.log(data)
+    // console.log(sr)
+
+    // THIS METHOD IS WRONG
+
+    for (let i = 0; i < Object.values(onsets).length; i++) {
+      let minX = Math.ceil(onsets[i] * sr)
+      let maxX = Math.ceil(durations[i])
+      let desc = descriptions[i]
+
+      this.activeMarkAreas.push(
+        [
+          {
+            description: desc,
+            xAxis: i*sr
+          }, {
+            xAxis: maxX
+          }
+        ]
+      )
+    }
+
+    this.refreshMarkArea(false)
+  }
+
 
   handleKeyDown = (event) => {
     if (!this.echartRef) return
@@ -238,11 +278,16 @@ class ElectrogramDisplay extends React.Component {
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
 
-    // if (key == 'SPACEBAR') {
-    //   let echart = this.echartRef.getEchartsInstance()
-    //   echart.showLoading()
-    //   return
-    // }
+    if (key == 'SPACEBAR') {
+      netface.requestAnnotations()
+        .then(annos => {
+          console.log('spacebar')
+          console.log(annos)
+          console.log(this.activeMarkAreas)
+          // this.networkAnnotationsToMarkArea(annos)
+        })
+      return
+    }
     
     if (key == 'BACKSPACE') {
       this.selectionClear()
@@ -333,8 +378,11 @@ class ElectrogramDisplay extends React.Component {
       for (let key in this.state.eegData) {
         sum += this.state.eegData[key].length
       }
-      console.log(`Data download complete! Sum: ${sum}`)
       // Data has been loaded into state.eegData,
+      console.log(`Data download complete! Sum: ${sum}`)
+      // Download annotations
+      netface.requestAnnotations()
+        .then(this.networkAnnotationsToMarkArea)
       // SetState to redraw (calling too often makes it quite slow)
       this.setState({})
       return

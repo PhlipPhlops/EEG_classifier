@@ -1,0 +1,7 @@
+- Use the dev environment script in scripts/
+- Before use, set the $NG variable to /path/to/neurogram in .bashrc
+- Make sure to grab a copy of the .env file and store in react/
+- Conda create then conda update the environment yml
+- We're using MNE unstable version for Annotations.to_data_frame() ->
+  instructions for install at bottom of environment yml
+- lastly, npm -i in react/ and you should be off to the races

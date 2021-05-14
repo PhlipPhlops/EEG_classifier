@@ -61,7 +61,8 @@ def save_annotations_to_file():
     sid = request.form['sid']
     onsets = list(map(float, request.form['onsets'].split(',')))
     durations = list(map(float, request.form['durations'].split(',')))
-    descriptions = request.form['descriptions']
+    # TODO: Clean this up for descriptions with commas
+    descriptions = request.form['descriptions'].split(',')
     logger.info(onsets)
     # Find file
     filename = getFilenameBySid(sid)
@@ -81,6 +82,7 @@ def get_annotations_from_file():
     sid = request.form['sid']
     filename = getFilenameBySid(sid)
     edf = EDFReader(filename)
+    logger.info(edf.get_annotations_as_df())
     return edf.get_annotations_as_df().to_json()
 
 
@@ -125,12 +127,12 @@ def upload_edf():
     return make_response(jsonify(response_data))
 
 
-@app.route("/edf-download/<filekey>", methods=["POST"])
-def download_edf(filekey):
+@app.route("/edf-download", methods=["POST"])
+def download_edf():
     """Returns a file saved in /tmp/ if associated with keymap"""
     sid = request.form['sid']
-    filename = getFilenameBySid(sid)
-    logger.info(f'Logfieleee {filename}')
+    filename = getFilenameBySid(sid).lstrip('/tmp/')
+    logger.info(f'Returning {filename}')
     return send_from_directory(directory="/tmp/", filename=filename)
 
 

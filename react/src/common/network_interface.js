@@ -71,9 +71,7 @@ class ClassifierInterface {
     formData.append('durations', durations)
     formData.append('descriptions', descriptions)
 
-    console.log(onsets, durations, descriptions)
-
-    fetch(BASE_URL + '/set-annotations', {
+    return fetch(BASE_URL + '/set-annotations', {
       method: 'POST',
       body: formData,
       headers: {
@@ -81,10 +79,21 @@ class ClassifierInterface {
       }
     })
       .then(response => response.json())
-      .then(data => {
-        console.log('annotations resp')
-        console.log(data)
-      })
+  }
+
+  requestAnnotations() {
+    let formData = new FormData()
+    formData.append('sid', this.sid)
+
+    return fetch(BASE_URL + '/get-annotations', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "accepts":"application/json"
+      }
+    })
+      .then(response => response.json())
+      // Call .then again to handle data later
   }
 
   requestChunk(n, N) {
@@ -105,13 +114,16 @@ class ClassifierInterface {
     })
   }
 
-  downloadByFilekey(filekey) {
+  downloadByFilekey() {
     let formData = new FormData();
     formData.append('sid', this.sid)
 
-    return fetch(BASE_URL + '/edf-download/' + filekey, {
+    return fetch(BASE_URL + '/edf-download', {
       method: 'POST',
       body: formData,
+      headers: {
+        "accepts":"application/json",
+      }
     })
   }
 
