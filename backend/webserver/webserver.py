@@ -75,6 +75,7 @@ def save_annotations_to_file():
     # Return the saved annotations
     return edf.get_annotations_as_df().to_json()
 
+
 @app.route("/get-annotations", methods=["POST"])
 def get_annotations_from_file():
     """Grabs annotations already stored in file
@@ -83,6 +84,65 @@ def get_annotations_from_file():
     filename = getFilenameBySid(sid)
     edf = EDFReader(filename)
     return edf.get_annotations_as_df().to_json()
+
+
+@app.route("/edf-download", methods=["POST"])
+def download_edf():
+    """Returns a file saved in /tmp/ if associated with keymap"""
+    sid = request.form['sid']
+    filename = getFilenameBySid(sid).lstrip('/tmp/')
+    logger.info(f'Returning {filename}')
+    return send_from_directory(directory="/tmp/", filename=filename)
+
+
+@app.route("/eeg-chunk", methods=["POST"])
+def retrieve_samples_by_index():
+    """Grab a chunk of the data for the server to render by index
+    Retrieves samples from i_start up to, not including, i_end
+    """
+    # grab sid, n and N
+    sid = request.form['sid']
+    i_start = int(request.form['i_start'])
+    i_end = int(request.form['i_end'])
+    # Retrieve cached dataframe and grab a chunk from it
+    chunker = EegChunker()
+    chunk_df = chunker.chunk_by_index(sid, i_start, i_end)
+
+    response_data = {
+        "eeg_chunk": chunk_df.to_json()
+    }
+    return make_response(jsonify(response_data))
+
+
+@app.route("/", methods=["GET"])
+def sanity_check():
+    """Just a ping"""
+    logger.info('ping')
+    response = make_response("pong", 200)
+    response.mimetype = "text/plain"
+    return response
+
+
+
+
+@app.route("/edf-chunk", methods=["POST"])
+def retrieve_chunk():
+    """Grab a chunk of the data for the server to render
+
+    ### LEGACY ENDPOINT
+    """
+    # grab sid, n and N
+    sid = request.form['sid']
+    chunk_i = int(request.form['chunk_i'])
+    chunks_total = int(request.form['chunk_total'])
+    # Retrieve cached dataframe and grab a chunk from it
+    chunker = EegChunker()
+    chunk_df = chunker.chunk_as_data_frame(sid, chunk_i, chunks_total)
+
+    response_data = {
+        "eeg_chunk": chunk_df.to_json()
+    }
+    return make_response(jsonify(response_data))
 
 
 @app.route("/edf-upload", methods=["POST"])
@@ -124,38 +184,3 @@ def upload_edf():
     }
 
     return make_response(jsonify(response_data))
-
-
-@app.route("/edf-download", methods=["POST"])
-def download_edf():
-    """Returns a file saved in /tmp/ if associated with keymap"""
-    sid = request.form['sid']
-    filename = getFilenameBySid(sid).lstrip('/tmp/')
-    logger.info(f'Returning {filename}')
-    return send_from_directory(directory="/tmp/", filename=filename)
-
-
-@app.route("/edf-chunk", methods=["POST"])
-def retrieve_chunk():
-    """Grab a chunk of the data for the server to render"""
-    # grab sid, n and N
-    sid = request.form['sid']
-    chunk_i = int(request.form['chunk_i'])
-    chunks_total = int(request.form['chunk_total'])
-    # Retrieve cached dataframe and grab a chunk from it
-    chunker = EegChunker()
-    chunk_df = chunker.chunk_as_data_frame(sid, chunk_i, chunks_total)
-
-    response_data = {
-        "eeg_chunk": chunk_df.to_json()
-    }
-    return make_response(jsonify(response_data))
-
-
-@app.route("/", methods=["GET"])
-def sanity_check():
-    """Just a ping"""
-    logger.info('ping')
-    response = make_response("pong", 200)
-    response.mimetype = "text/plain"
-    return response

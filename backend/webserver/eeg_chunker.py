@@ -36,10 +36,19 @@ class EegChunker:
         """Return the total number of samples (time stamps) of chunked file"""
         return EDFReader(filepath).to_data_frame().shape[1]
 
+    def chunk_by_index(self, sid, i_start, i_end):
+        """Returns samples of data from i_start up to, not including, i_end
+        """
+        df = self.retrieve_from_pickle(sid)
+        chunk = df.iloc[:, i_start:i_end]
+        return chunk
+
     def chunk_as_data_frame(self, sid, n, N):
         """Returns the nth chunk out of N total chunks
         of the data frame; specifically, all available electrodes
         from timestep n*(timesteps/N):(n+1)*(timesteps/N)-1
+
+        ### LEGACY METHOD
         """
         if n < 0 or n >= N:
             raise Exception("n chunk must be in range [0:N)")

@@ -118,6 +118,24 @@ class ClassifierInterface {
     })
   }
 
+  requestSamplesByIndex(i_start, i_end) {
+    if (store.getState().serverStatus != 'UPLOADED') {
+      throw 'EDF must be uploaded before requesting a chunk'
+    }
+    let formData = new FormData();
+    formData.append('sid', this.sid)
+    formData.append('i_start', i_start)
+    formData.append('i_end', i_end)
+
+    return fetch(BASE_URL + '/eeg-chunk', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "accepts":"application/json",
+      }
+    })
+  }
+
   downloadByFilekey() {
     let formData = new FormData();
     formData.append('sid', this.sid)

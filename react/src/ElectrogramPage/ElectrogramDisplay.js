@@ -14,13 +14,22 @@ class ElectrogramDisplay extends React.Component {
     this.activeBrushAreas = [];
     this.activeMarkAreas = [];
 
-    // These variables are used for viewport control, leveraing
+    // These variables are used for viewport control, leveraging
     // echarts setOption() so no need for setState()
-    this.chunkSize = 10 // in seconds
+    // ALL MUST BE SET AFTER FILE UPLOADED SIGNAL
     this.sampleRate = null // samples per second
-    this.chunkBuffer = 2 // Num chunks on either side ofthe viewport
-    this.leftMostIndex = 0 // Index of loaded chunks relative to total num samples
-    this.currentViewportIndex = 0 // Index of viewport relative to chunk samples
+    this.secPerChunk = 10
+    this.chunkSize = null // (updated later)
+    this.numChunkBuffers = 5 // Num chunks on either side ofthe viewport
+    this.totalBufferSize = null
+    this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
+    // Datazoom indices
+    this.dz_start = 0
+    this.dz_end = this.chunkSize
+    // Thresholds on which to request more data
+    // when dz_start passes over these values, it'll update
+    this.threshold_left = null
+    this.threshold_right = null
     
     this.state = {
       isChunkDownloadLocked: false,
@@ -42,15 +51,30 @@ class ElectrogramDisplay extends React.Component {
         && !this.state.isChunkDownloadLocked
         && Object.keys(this.state.eegData).length == 0)
       {
-        // Calling bindEvents here as echart is already established
+        // File has been successfully uploaded
+        // Must be called before echartRef becomes active
         this.setState({isChunkDownloadLocked: true})
+        
+        // Store variables from server
+        this.sampleRate = store.getState().sampleRate
+        this.numSamples = store.getState().numSamples
+        this.chunkSize = this.secPerChunk * this.sampleRate
+        this.totalBufferSize = this.chunkSize * (this.numChunkBuffers * 2 + 1)
+        this.dz_end = this.chunkSize
+        // Updates on threshold of the last chunk in the buffer (or first)
+        this.threshold_left = 2 * this.chunkSize
+        this.threshold_right = (this.numChunkBuffers * 2 - 1) * this.chunkSize
+        
+        // Bind events and show loading
         let echart = this.echartRef.getEchartsInstance()
         this.bindInteractionEvents()
         echart.showLoading({
           color: '#cccccc'
         })
-
-        this.requestData(0, 10)
+        
+        this.initialDataLoad()
+        // LEGACY
+        // this.requestData(0, 10)
       }
     })
   }
@@ -281,8 +305,10 @@ class ElectrogramDisplay extends React.Component {
 
     if (key == 'SPACEBAR') {
       // Use this method to test anything as result of a keypress
-      console.log(store.getState().numSamples)
-      console.log(store.getState().sampleRate)
+      let echart = this.echartRef.getEchartsInstance()
+      echart.showLoading({
+        color: '#cccccc'
+      })
       return
     }
     
@@ -297,29 +323,11 @@ class ElectrogramDisplay extends React.Component {
     }
     
     if (key == 'LEFT' || key == 'RIGHT') {
-      let echart = this.echartRef.getEchartsInstance()
-      let xAxisZoom = echart.getOption().dataZoom[0]
-
-      let changeRate = sampleRate
-      if (event.ctrlKey) {
-        changeRate = changeRate * 10
-      }
-
       if (key == 'LEFT') {
-        echart.dispatchAction({
-          type: 'dataZoom',
-          dataZoomIndex: 0,
-          startValue: xAxisZoom.startValue - changeRate,
-          endValue: xAxisZoom.endValue - changeRate,
-        })
+        this.moveLeft(event.ctrlKey)
       }
       if (key == 'RIGHT') {
-        echart.dispatchAction({
-          type: 'dataZoom',
-          dataZoomIndex: 0,
-          startValue: xAxisZoom.startValue + changeRate,
-          endValue: xAxisZoom.endValue + changeRate,
-        })
+        this.moveRight(event.ctrlKey)
       }
     }
 
@@ -357,16 +365,202 @@ class ElectrogramDisplay extends React.Component {
     }
   }
 
+  /**
+   * Movement around the data event handlers 
+   */
+  moveLeft = (isCtrlPressed) => {
+    let changeRate = this.sampleRate
+    if (isCtrlPressed) {
+      changeRate = this.chunkSize
+    }
+
+    this.dz_start = this.dz_start - changeRate
+    this.dz_end = this.dz_end - changeRate
+
+    this.updateViewport()
+  }
+
+  moveRight = (isCtrlPressed) => {
+    let changeRate = this.sampleRate
+    if (isCtrlPressed) {
+      changeRate = this.chunkSize
+    }
+
+    this.dz_start = this.dz_start + changeRate
+    this.dz_end = this.dz_end + changeRate
+
+    this.updateViewport()
+  }
+
+  updateViewport = () => {
+    // Using the current values stored in xAxisZoom, ensure there's adequate data
+    // on either side to buffer any data changes before moving left or right
+    let echart = this.echartRef.getEchartsInstance()
+    let xAxisZoom = echart.getOption().dataZoom[0]
+
+    echart.dispatchAction({
+      type: 'dataZoom',
+      dataZoomIndex: 0,
+      startValue: this.dz_start,
+      endValue: this.dz_end,
+    })
+
+    this.positionBarRef.updatePosition(
+      this.bufferStartIndex + this.dz_start,
+      this.totalBufferSize,
+      this.chunkSize
+    )
+
+    this.updateDataBuffer()
+  }
+
+  updateDataBuffer = () => {
+    console.log("UPDATE DATA BUFFER")
+    console.log({
+      dz_start: this.dz_start,
+      dz_end: this.dz_end,
+      th_left: this.threshold_left,
+      th_right: this.threshold_right,
+    })
+    if (this.dz_start < this.threshold_left) {
+      if (this.bufferStartIndex == 0) {
+        return
+      }
+      this.rollDataLeft()
+    } else if (this.dz_start >= this.threshold_right) {
+      if (this.bufferStartIndex + this.totalBufferSize >= this.numSamples) {
+        return
+      }
+      this.rollDataRight()
+    }
+  }
+
+  rollDataLeft = () => {
+    // next chunk indices refers to the indices of the actual data
+    let prevChunkEnd = this.bufferStartIndex
+    let prevChunkStart = (this.bufferStartIndex) - (this.numChunkBuffers * this.chunkSize)
+
+
+    this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
+      .then((data) => {
+        let chunk = JSON.parse(data.eeg_chunk)
+        let eegData = this.organizeEegData(chunk)
+
+        // Postpend the data and remove prefix
+        let len = 0
+        for (let key in eegData) {
+          if (key == "time") {
+            continue
+          }
+          // DANGER in len: may shift the viewport size
+          len = eegData[key].length
+          // Remove prefix and push new data
+          this.state.eegData[key] = this.state.eegData[key].slice(0, this.state.eegData[key].length - len)
+          this.state.eegData[key].unshift(...eegData[key])
+        }
+
+        console.log("IN ROLL DATA LEFT")
+        console.log({
+          chunkSize: this.chunkSize,
+          lenDataAddedAndRemoved: len,
+          totalSamples: this.numSamples,
+          leftBuff: this.bufferStartIndex
+        })
+
+        // Apply a shift to the bufferStartIndex for further requests
+        this.bufferStartIndex = this.bufferStartIndex - len
+        this.dz_start = this.dz_start + len
+        this.dz_end = this.dz_end + len
+
+        // Refresh options
+        this.refreshOptions()
+      })
+  }
+
+  rollDataRight = () => {
+    // next chunk indices refers to the indices of the actual data
+    let nextChunkStart = (this.bufferStartIndex) + this.totalBufferSize
+    let nextChunkEnd = nextChunkStart + (this.numChunkBuffers * this.chunkSize)
+    this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
+      .then((data) => {
+        let chunk = JSON.parse(data.eeg_chunk)
+        let eegData = this.organizeEegData(chunk)
+
+        // Postpend the data and remove prefix
+        let len = 0
+        for (let key in eegData) {
+          if (key == "time") {
+            continue
+          }
+          // DANGER in len: may shift the viewport size
+          len = eegData[key].length
+          // Remove prefix and push new data
+          this.state.eegData[key] = this.state.eegData[key].slice(len)
+          this.state.eegData[key].push(...eegData[key])
+        }
+
+        console.log("IN ROLL DATA RIGHT")
+        console.log({
+          chunkSize: this.chunkSize,
+          lenDataAddedAndRemoved: len,
+          totalSamples: this.numSamples,
+          leftBuff: this.bufferStartIndex
+        })
+
+        // Apply a shift to the bufferStartIndex for further requests
+        this.bufferStartIndex = this.bufferStartIndex + len
+        this.dz_start = this.dz_start - len
+        this.dz_end = this.dz_end - len
+
+        // Refresh options
+        this.refreshOptions()
+      })
+  }
+
+  refreshOptions = () => {
+    let echart = this.echartRef.getEchartsInstance()
+    let option = this.getOptions()
+    echart.setOption(option)
+  }
+
 
   /**
    * 
    * Charts data requests, organization, and options
    * 
    */
+  initialDataLoad = () => {
+    this.requestSamplesByIndex(0, this.totalBufferSize)
+      .then((data) => {
+        let chunk = JSON.parse(data.eeg_chunk)
+        let eegData = this.organizeEegData(chunk)
+        this.pushDataToSeries(eegData)
+          .then(() => this.setState({}))
+      })
+  }
+
+  requestSamplesByIndex = (i_start, i_end) => {
+    // Returns a promise representing a JSON of the data
+    if (i_start < 0) {
+      i_start = 0
+    }
+    if (i_end > this.numSamples) {
+      i_end = this.numSamples
+    }
+    console.log(`Requesting samples [ ${i_start} : ${i_end}] `)
+    return netface.requestSamplesByIndex(i_start, i_end)
+      .then((data) => data.json())
+  }
+
+
+
+
+
 
   requestData = (n, N) => {
     // Download chunks (from index 0 -> arbitrary total)
     // If it's too heavy, raise total for smaller chunks
+    // ### LEGACY METHOD
 
     // Use || n == <somenumber> to early stop for testing
     // if (n == 5) {
@@ -416,7 +610,6 @@ class ElectrogramDisplay extends React.Component {
     })
   }
 
-
   organizeEegData(chunk) {
     /*
       originally arranged
@@ -454,6 +647,7 @@ class ElectrogramDisplay extends React.Component {
 
     return orgedData
   }
+
 
 
   /**
@@ -508,7 +702,7 @@ class ElectrogramDisplay extends React.Component {
           show: (i == keysArray.length - 1), // Only show on last grid
           interval: sampleRate - 1,
           formatter: (value, index) => {
-            return value / sampleRate
+            return (this.bufferStartIndex + parseInt(value)) / sampleRate
           }
         },
         axisLine: {
@@ -616,7 +810,7 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           interval: sampleRate - 1,
           formatter: (value, index) => {
-            return value / sampleRate
+            return (value + this.bufferStartIndex) / sampleRate
           }
         },
         axisLine: {
@@ -680,8 +874,8 @@ class ElectrogramDisplay extends React.Component {
           xAxisIndex: Object.keys(series),
           type: 'slider',
           bottom: '2%',
-          startValue: 0,
-          endValue: 10 * sampleRate,
+          startValue: this.dz_start,
+          endValue: this.dz_end,
           preventDefaultMouseMove: true,
 
           zoomOnMouseWheel: false,
@@ -726,6 +920,9 @@ class ElectrogramDisplay extends React.Component {
           option={this.getOptions()}
           style={{height: '100%'}}
           />
+        <PositionBar
+          ref={(ref) => { this.positionBarRef = ref }}
+          />
       </EDParent>
     )
   }
@@ -737,4 +934,54 @@ const EDParent = styled.div`
   background-color: white;
   height: 100%;
   padding: 5px;
+`;
+
+class PositionBar extends React.Component {
+
+  constructor(props) {
+    super(props)
+    this.state = {
+      left: 0,
+      width: 0
+    }
+  }
+
+  updatePosition(bufferLeftIndex, totalBufferSize, chunkSize) {
+    // Calced in percents
+    console.log("UPDATE POSITION BAR")
+    this.setState({
+      left: bufferLeftIndex / totalBufferSize,
+      width: chunkSize / totalBufferSize
+    })
+  }
+
+  renderBar = () => {
+    return <div style={{
+      // position: 'absolute',
+      backgroundColor: '#000000',
+      top: '0px',
+      marginLeft: `${this.state.left}%`,
+      height: '100%',
+      width: `${this.state.width}%`,
+      minWidth: `10px`,
+      borderRadius: '2px'
+    }}>
+    </div>
+  }
+
+  render = () => {
+    return (
+      <PositionParents>
+        {this.renderBar()}
+      </PositionParents>
+    )
+  }
+}
+
+const PositionParents = styled.div`
+  background-color: #cccccc;
+  height: 5px;
+  border-radius: 2px;
+  margin-left: 7.5%;
+  margin-right: 2.5%;
 `;
