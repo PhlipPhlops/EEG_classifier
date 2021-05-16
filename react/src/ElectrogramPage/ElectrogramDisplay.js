@@ -13,10 +13,17 @@ class ElectrogramDisplay extends React.Component {
     this.backsplashGridIndex = 0;
     this.activeBrushAreas = [];
     this.activeMarkAreas = [];
+
+    // These variables are used for viewport control, leveraing
+    // echarts setOption() so no need for setState()
+    this.chunkSize = 10 // in seconds
+    this.sampleRate = null // samples per second
+    this.chunkBuffer = 2 // Num chunks on either side ofthe viewport
+    this.leftMostIndex = 0 // Index of loaded chunks relative to total num samples
+    this.currentViewportIndex = 0 // Index of viewport relative to chunk samples
     
     this.state = {
       isChunkDownloadLocked: false,
-      sampleRate: null,
       eegData: {}
     }
   }
@@ -272,15 +279,12 @@ class ElectrogramDisplay extends React.Component {
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
 
-    // if (key == 'SPACEBAR') {
-    //   netface.requestAnnotations()
-    //     .then(annos => {
-    //       console.log('Annotations from network:')
-    //       console.log(annos)
-    //       // this.networkAnnotationsToMarkArea(annos)
-    //     })
-    //   return
-    // }
+    if (key == 'SPACEBAR') {
+      // Use this method to test anything as result of a keypress
+      console.log(store.getState().numSamples)
+      console.log(store.getState().sampleRate)
+      return
+    }
     
     if (key == 'BACKSPACE') {
       this.selectionClear()
@@ -531,6 +535,11 @@ class ElectrogramDisplay extends React.Component {
           show: false,
         },
         showGrid: false,
+        // Programatically scale min/max
+        // min: Math.min(this.state.eegData[key]),
+        // max: Math.max(this.state.eegData[key]),
+        // min: -1,
+        // max: 1
         min: -1e-3,
         max: 1e-3,
       })

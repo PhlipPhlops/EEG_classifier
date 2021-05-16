@@ -3,6 +3,7 @@ import { createStore, combineReducers } from 'redux';
 let initialState = {
   serverStatus: 'ATTEMPTING',
   fileSampleRate: null,
+  numSamples: null,
 }
 
 const serverStatus = (state=initialState.serverStatus, action) => {
@@ -36,9 +37,21 @@ const sampleRate = (state=initialState.fileSampleRate, action) => {
   }
 }
 
+const numSamples = (state=initialState.numSamples, action) => {
+  switch (action.type) {
+
+    case 'server/upload_successful':
+      return action.payload.num_samples
+
+    default:
+      return state
+  }
+}
+
 const reducers = combineReducers({
   serverStatus,
   sampleRate,
+  numSamples,
 })
 
 const store = createStore(reducers)

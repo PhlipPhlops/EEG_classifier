@@ -32,6 +32,10 @@ class EegChunker:
         """Return the samplerate of the chunked file"""
         return EDFReader(filepath).sample_rate
 
+    def get_num_samples(self, sid, filepath):
+        """Return the total number of samples (time stamps) of chunked file"""
+        return EDFReader(filepath).to_data_frame().shape[1]
+
     def chunk_as_data_frame(self, sid, n, N):
         """Returns the nth chunk out of N total chunks
         of the data frame; specifically, all available electrodes

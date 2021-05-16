@@ -3,17 +3,20 @@
 
 import mne
 from .save_edf import write_edf
+from ..app_config import logger
 
 def _read_to_raw(filepath):
   """Filetype agnostic method that reads to mne RAW type"""
   read_methods = {
     'edf': mne.io.read_raw_edf,
-    'eeg': mne.io.read_raw_nihon,
+    'EEG': mne.io.read_raw_nihon,
     'cnt': mne.io.read_raw_cnt,
   }
   # Grab extension to determine
   extension = filepath.split('.')[-1]
-  read_file = read_methods[extension.lower()]
+  read_file = read_methods[extension]
+
+  logger.info(filepath)
 
   raw = read_file(filepath)
   return raw

@@ -48,7 +48,8 @@ def upload_anytype_eeg():
 
     # Respond with sample rate
     response_data = {
-        "sample_rate": chunker.get_sample_rate(sid, edf_path)
+        "sample_rate": chunker.get_sample_rate(sid, edf_path),
+        "num_samples": chunker.get_num_samples(sid, edf_path)
     }
 
     return make_response(jsonify(response_data))
