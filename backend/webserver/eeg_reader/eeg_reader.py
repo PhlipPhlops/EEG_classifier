@@ -4,6 +4,7 @@
 import mne
 from .save_edf import write_edf
 from ..app_config import logger
+from ...edf_reader import EDFReader
 
 def _read_to_raw(filepath):
   """Filetype agnostic method that reads to mne RAW type"""
@@ -26,8 +27,15 @@ def save_agnostic_to_edf(filepath):
   Returns the path to the edf
   """
   raw = _read_to_raw(filepath)
-  logger.info(raw.to_data_frame())
+  # raw.resample(200)
   edf_path = '.'.join(filepath.split('.')[:-1]) + '.edf'
   write_edf(raw, edf_path, overwrite=True)
+
+  # edf = EDFReader(edf_path)
+  # logger.info("READING AGNOSTICs")
+  # logger.info(raw.to_data_frame().shape)
+  # logger.info(raw.to_data_frame()[100:130,0:5])
+  # logger.info(edf.to_data_frame().shape)
+  # logger.info(edf.to_data_frame()[0:5,100:130])
   return edf_path
   

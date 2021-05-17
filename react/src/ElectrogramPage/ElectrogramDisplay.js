@@ -36,6 +36,9 @@ class ElectrogramDisplay extends React.Component {
     // when dz_start passes over these values, it'll update
     this.threshold_left = null
     this.threshold_right = null
+    // Holds y-zoom data
+    this.yZoom = .01
+    this.yTranslate = 0
 
     // Movement flag to handle rapid pressing of the movment buttons
     this.blockScrollMovement = false
@@ -62,15 +65,7 @@ class ElectrogramDisplay extends React.Component {
         // Must be called before echartRef becomes active
         this.setState({isRenderIntitialized: true})
         
-        // Store variables from server
-        this.sampleRate = store.getState().sampleRate
-        this.numSamples = store.getState().numSamples
-        this.chunkSize = this.secPerChunk * this.sampleRate
-        this.totalBufferSize = this.chunkSize * (this.numChunkBuffers * 2 + 1)
-        this.dz_end = this.chunkSize
-        // Updates on threshold of the last chunk in the buffer (or first)
-        this.threshold_left = 2 * this.chunkSize
-        this.threshold_right = (this.numChunkBuffers * 2 - 1) * this.chunkSize
+        this.updateNavVariables()
         
         // Bind events and show loading
         let echart = this.echartRef.getEchartsInstance()
@@ -89,6 +84,30 @@ class ElectrogramDisplay extends React.Component {
   onChartFirstRender() {
     this.selectHorizontalMultiBrush()
   }
+
+  updateNavVariables() {
+    // Store variables from server
+    this.sampleRate = store.getState().sampleRate
+    this.numSamples = store.getState().numSamples
+    this.chunkSize = Math.ceil(this.secPerChunk * this.sampleRate)
+    this.totalBufferSize = this.chunkSize * (this.numChunkBuffers * 2 + 1)
+    this.dz_end = this.dz_start + this.chunkSize
+    // Updates on threshold of the last chunk in the buffer (or first)
+    this.threshold_left = 2 * this.chunkSize
+    this.threshold_right = (this.numChunkBuffers * 2 - 1) * this.chunkSize
+  }
+
+
+  changeChunkSize(toBeSmaller) {
+    if (toBeSmaller) {
+      this.secPerChunk = this.secPerChunk / 2
+    } else {
+      this.secPerChunk = this.secPerChunk * 2
+    }
+    this.updateNavVariables()
+    this.updateViewport()
+  }
+
 
   bindInteractionEvents = () => {
     /**
@@ -111,6 +130,9 @@ class ElectrogramDisplay extends React.Component {
       if (event.componentType === 'markArea') {
         this.deleteMarkArea(event)
       }
+    })
+    // Catch del axis e vents
+    echart.on('click', (event) => {
       if (event.componentType === 'xAxis') {
         this.markAxisForDeletion(event)
       }
@@ -318,7 +340,6 @@ class ElectrogramDisplay extends React.Component {
     this.refreshMarkArea(false)
   }
 
-
   handleKeyDown = (event) => {
     if (!this.echartRef) return
 
@@ -343,15 +364,22 @@ class ElectrogramDisplay extends React.Component {
     
     if (key == 'BACKSPACE') {
       this.selectionClear()
+      this.clearMarkedAxies()
       return
     }
 
     if (key == 'ENTER') {
       this.brushSelectionsToMarkArea()
+      this.deleteMarkedAxies()
       return
     }
     
     if (key == 'LEFT' || key == 'RIGHT') {
+      if (event.ctrlKey && event.altKey) {
+        this.changeChunkSize(key == 'LEFT')
+        return
+      }
+
       if (key == 'LEFT') {
         this.moveLeft(event.ctrlKey)
       }
@@ -362,65 +390,46 @@ class ElectrogramDisplay extends React.Component {
 
     if (key == 'UP' || key == 'DOWN') {
       let echart = this.echartRef.getEchartsInstance()
-      let yAxisZoom = echart.getOption().dataZoom[1]
-      let zoomChange = 1
+      let zoomRate = 1.5
+      let translateAmt = 0.5*this.yZoom
       if (key == 'UP') {
-        if (yAxisZoom.end - yAxisZoom.start <= zoomChange*2) {
-          // Handle datazoom collapsing to 0
-          echart.dispatchAction({
-            type: 'dataZoom',
-            dataZoomIndex: 1,
-            start: 49,
-            end: 51,
-          })
+        if (event.ctrlKey) {
+          this.yTranslate = this.yTranslate + translateAmt
         } else {
-          // Usual behavior
-          echart.dispatchAction({
-            type: 'dataZoom',
-            dataZoomIndex: 1,
-            start: yAxisZoom.start + zoomChange,
-            end: yAxisZoom.end - zoomChange,
-          })
+          this.yZoom = this.yZoom / zoomRate
         }
       }
       if (key == 'DOWN') {
-        echart.dispatchAction({
-          type: 'dataZoom',
-          dataZoomIndex: 1,
-          start: yAxisZoom.start - zoomChange,
-          end: yAxisZoom.end + zoomChange,
-        })
+        if (event.ctrlKey) {
+          this.yTranslate = this.yTranslate - translateAmt
+        } else {
+          this.yZoom = this.yZoom * zoomRate
+        }
       }
+      echart.dispatchAction({
+        type: 'dataZoom',
+        dataZoomIndex: 1,
+        start: 50 + this.yTranslate - this.yZoom,
+        end: 50 + this.yTranslate + this.yZoom,
+      })
     }
   }
 
 
   markAxisForDeletion = (xAxis) => {
-    return
     let key = xAxis.name
     this.axiesToRemove.push(key)
-
-    console.log("IN AXIS LABEL")
-
-    let option = {
-      xAxis: {
-        id: key,
-        axisLabel: {
-          color: 'red'
-        },
-      }
-    }
-
-    let echart = this.echartRef.getEchartsInstance()
-    echart.setOption(option, {
-      replaceMerge: ['xAxis']
-    })
+    console.log("Axies marked for deletion")
+    console.log(this.axiesToRemove)
   }
-
-  deleteAxies = () => {
+  deleteMarkedAxies = () => {
+    if (this.axiesToRemove.length == 0) return
     this.removedAxies.push(...this.axiesToRemove)
-    this.axiesToRemove = []
+    this.clearMarkedAxies()
     this.refreshOptionsHard()
+  }
+  clearMarkedAxies = () => {
+    this.axiesToRemove = []
   }
 
 
@@ -433,9 +442,9 @@ class ElectrogramDisplay extends React.Component {
       return
     }
 
-    let changeRate = this.sampleRate
-    if (isCtrlPressed) {
-      changeRate = this.chunkSize
+    let changeRate = this.chunkSize
+    if (!isCtrlPressed) {
+      changeRate = Math.ceil(changeRate / this.secPerChunk)
     }
 
     this.dz_start = this.dz_start - changeRate
@@ -455,9 +464,9 @@ class ElectrogramDisplay extends React.Component {
       return
     }
 
-    let changeRate = this.sampleRate
-    if (isCtrlPressed) {
-      changeRate = this.chunkSize
+    let changeRate = this.chunkSize
+    if (!isCtrlPressed) {
+      changeRate = Math.ceil(changeRate / this.secPerChunk)
     }
 
     this.dz_start = this.dz_start + changeRate
@@ -626,6 +635,7 @@ class ElectrogramDisplay extends React.Component {
     echart.setOption(option)
     // Must be called AFTER echart Set option else it gets erased
     this.refreshMarkArea()
+    echart.hideLoading()
   }
   refreshOptionsHard = () => {
     let echart = this.echartRef.getEchartsInstance()
@@ -634,6 +644,7 @@ class ElectrogramDisplay extends React.Component {
     echart.setOption(option, true)
     // Must be called AFTER echart Set option else it gets erased
     this.refreshMarkArea()
+    this.selectHorizontalMultiBrush()
     echart.hideLoading()
   }
 
@@ -779,7 +790,7 @@ class ElectrogramDisplay extends React.Component {
 
     // Layout configuration
     let bottomPadding = 5
-    let height = 10
+    let height = 20
     let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     keysArray.forEach((key) => {
@@ -833,6 +844,10 @@ class ElectrogramDisplay extends React.Component {
         nameLocation: 'start',
       })
 
+      // let scaleMax = new MyMaths().roundToNextDigit(Math.max(...this.state.eegData[key]))
+      let scaleMax = 1
+      let scaleMin = -scaleMax
+
       yAxies.push({
         id: key,
         type: 'value',
@@ -848,12 +863,8 @@ class ElectrogramDisplay extends React.Component {
         },
         showGrid: false,
         // Programatically scale min/max
-        // min: Math.min(this.state.eegData[key]),
-        // max: Math.max(this.state.eegData[key]),
-        // min: -1,
-        // max: 1
-        min: -1e-3,
-        max: 1e-3,
+        min: scaleMin,
+        max: scaleMax
       })
 
       // Add a line config to series object
@@ -1012,8 +1023,8 @@ class ElectrogramDisplay extends React.Component {
           moveOnMouseMove: false,
 
           id: 'eegGain',
-          start: 45,
-          end: 55,
+          start: 50 - this.yZoom,
+          end: 50 + this.yZoom,
         },{
           type: 'inside',
           yAxisIndex: Object.keys(series),
@@ -1039,8 +1050,7 @@ class ElectrogramDisplay extends React.Component {
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
           style={{
-            minHeight: '100%',
-            overflowY: 'scroll',
+            height: '100%',
           }}
           />
         <PositionBar
@@ -1058,6 +1068,7 @@ const EDParent = styled.div`
   background-color: white;
   height: 100%;
   padding: 5px;
+  overflow-y: scroll;
 `;
 
 class PositionBar extends React.Component {
@@ -1131,3 +1142,34 @@ const PositionParents = styled.div`
   margin-bottom: 5px;
   pointer-events: auto;
 `;
+
+class MyMaths {
+  roundToNextDigit = (flt) => {
+    if (flt <= 0) flt = flt * -1
+    // For configuring max and min on yAxis scale
+    // Flt should be a positive float
+    // Find the order of the float
+    let ctr = 0
+    if (flt > 1) {
+      while (flt > 1) {
+        flt = flt / 10
+        ctr = ctr + 1
+      }
+    } else if (flt > 0) {
+      while (flt < 1) {
+        flt = flt * 10
+        ctr = ctr - 1
+      }
+    }
+    if (ctr > 0) return 10**(ctr - 1)
+    if (ctr < 0) return 10**(ctr + 1)
+  }
+
+  absoluteAvg = (array) => {
+    return array.reduce((a, b) => {
+      if (a < 0) a = a * -1
+      if (b < 0) b = b * -1
+      return a + b
+    }) / array.length;
+  }
+}
