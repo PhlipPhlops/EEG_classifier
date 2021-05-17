@@ -46,7 +46,13 @@ class UploadField extends React.Component {
     netface.downloadByFilekey(this.state.filekey)
       .then((response) => response.blob())
       .then((blob) => {
-        saveAs(blob, this.filename)
+        // Ensure file extension is edf
+        let arr = this.filename.split(".");      // Split the string using dot as separator
+        arr.pop()
+        arr.push('edf')
+        let filenameAsEDF = arr.join(".")
+
+        saveAs(blob, filenameAsEDF)
       })
       .catch((err) => {
         console.log(err)

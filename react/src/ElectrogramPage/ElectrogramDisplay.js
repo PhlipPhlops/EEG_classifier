@@ -10,9 +10,14 @@ class ElectrogramDisplay extends React.Component {
   constructor(props) {
     super(props)
 
+    // MARK AREA VARIABLES
     this.backsplashGridIndex = 0;
     this.activeBrushAreas = [];
     this.activeMarkAreas = [];
+
+    // OTHER VARIABLES
+    this.removedAxies = ["time"] // time is filtered by default
+    this.axiesToRemove = [] // Temporary storage before being pushed to removedAxies
 
     // These variables are used for viewport control, leveraging
     // echarts setOption() so no need for setState()
@@ -105,6 +110,9 @@ class ElectrogramDisplay extends React.Component {
     echart.on('dblclick', (event) => {
       if (event.componentType === 'markArea') {
         this.deleteMarkArea(event)
+      }
+      if (event.componentType === 'xAxis') {
+        this.markAxisForDeletion(event)
       }
     })
   }
@@ -386,6 +394,36 @@ class ElectrogramDisplay extends React.Component {
     }
   }
 
+
+  markAxisForDeletion = (xAxis) => {
+    return
+    let key = xAxis.name
+    this.axiesToRemove.push(key)
+
+    console.log("IN AXIS LABEL")
+
+    let option = {
+      xAxis: {
+        id: key,
+        axisLabel: {
+          color: 'red'
+        },
+      }
+    }
+
+    let echart = this.echartRef.getEchartsInstance()
+    echart.setOption(option, {
+      replaceMerge: ['xAxis']
+    })
+  }
+
+  deleteAxies = () => {
+    this.removedAxies.push(...this.axiesToRemove)
+    this.axiesToRemove = []
+    this.refreshOptionsHard()
+  }
+
+
   /**
    * THIS COLLECTION OF FUNCTIONS HANDLES PANNING AROUND THE DATA
    * INCLUDING ALL NETWORK REQUESTS TO ROLL IN DATA AS NEEDED
@@ -456,15 +494,18 @@ class ElectrogramDisplay extends React.Component {
   }
 
   updateDataBuffer = () => {
+    let echart = this.echartRef.getEchartsInstance()
     if (this.dz_start < this.threshold_left) {
       if (this.bufferStartIndex == 0) {
         return
       }
+      echart.showLoading()
       this.rollDataLeft()
     } else if (this.dz_start >= this.threshold_right) {
       if (this.bufferStartIndex + this.totalBufferSize >= this.numSamples) {
         return
       }
+      echart.showLoading()
       this.rollDataRight()
     }
   }
@@ -483,9 +524,6 @@ class ElectrogramDisplay extends React.Component {
         // Postpend the data and remove prefix
         let len = 0
         for (let key in eegData) {
-          if (key == "time") {
-            continue
-          }
           // DANGER in len: may shift the viewport size
           len = eegData[key].length
           // Remove prefix and push new data
@@ -518,9 +556,6 @@ class ElectrogramDisplay extends React.Component {
         // Postpend the data and remove prefix
         let len = 0
         for (let key in eegData) {
-          if (key == "time") {
-            continue
-          }
           // DANGER in len: may shift the viewport size
           len = eegData[key].length
           // Remove prefix and push new data
@@ -564,9 +599,6 @@ class ElectrogramDisplay extends React.Component {
         // Postpend the data and remove prefix
         let len = 0
         for (let key in eegData) {
-          if (key == "time") {
-            continue
-          }
           // DANGER in len: may shift the viewport size
           len = eegData[key].length
           // Remove prefix and push new data
@@ -594,6 +626,15 @@ class ElectrogramDisplay extends React.Component {
     echart.setOption(option)
     // Must be called AFTER echart Set option else it gets erased
     this.refreshMarkArea()
+  }
+  refreshOptionsHard = () => {
+    let echart = this.echartRef.getEchartsInstance()
+    let option = this.getOptions()
+    echart.showLoading()
+    echart.setOption(option, true)
+    // Must be called AFTER echart Set option else it gets erased
+    this.refreshMarkArea()
+    echart.hideLoading()
   }
 
 
@@ -632,9 +673,6 @@ class ElectrogramDisplay extends React.Component {
   pushDataToSeries = (data) => {
     return new Promise((resolve, reject) => {
       for (let key in data) {
-        if (key == "time") {
-          continue
-        }
         if (!(key in this.state.eegData)) {
           this.state.eegData[key] = []
         }
@@ -734,6 +772,10 @@ class ElectrogramDisplay extends React.Component {
     
     let sampleRate = store.getState().sampleRate
     let keysArray = Object.keys(this.state.eegData)
+    // Remove deleted keys
+    keysArray = keysArray.filter((key) => {
+      return !this.removedAxies.includes(key);
+    });
 
     // Layout configuration
     let bottomPadding = 5
@@ -741,17 +783,17 @@ class ElectrogramDisplay extends React.Component {
     let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     keysArray.forEach((key) => {
-      // configure a grid, xAxis, yAxis, and series for each EEG electrode
-
       let i = keysArray.indexOf(key)
       let grid_top = (i * interval) + "%"
 
       grids.push({
+        id: key,
         left: '10%',
         right: '2%',
         top: grid_top,
         height: height + "%",
         show: true,
+        name: key,
         tooltip: {
           show: true,
           trigger: 'axis',
@@ -762,6 +804,8 @@ class ElectrogramDisplay extends React.Component {
       })
 
       xAxies.push({
+        id: key,
+        name: key,
         // Index of data as categories, for now
         data: [...Array(this.state.eegData[key].length).keys()],
         type: 'category',
@@ -784,11 +828,13 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           interval: sampleRate - 1,
         },
-        name: key,
+        // Trigger event means you can click on name to register event
+        triggerEvent: true,
         nameLocation: 'start',
       })
 
       yAxies.push({
+        id: key,
         type: 'value',
         gridIndex: i,
         axisLabel: {
@@ -952,6 +998,7 @@ class ElectrogramDisplay extends React.Component {
 
           zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
+          moveOnMouseMove: false,
         },
         {
           yAxisIndex: Object.keys(series),
@@ -963,7 +1010,6 @@ class ElectrogramDisplay extends React.Component {
           zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
           moveOnMouseMove: false,
-          preventDefaultMouseMove: false,
 
           id: 'eegGain',
           start: 45,
@@ -971,8 +1017,10 @@ class ElectrogramDisplay extends React.Component {
         },{
           type: 'inside',
           yAxisIndex: Object.keys(series),
+
+          zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
-          preventDefaultMouseMove: true,
+          moveOnMouseMove: false,
         }
       ],
     }
@@ -990,7 +1038,10 @@ class ElectrogramDisplay extends React.Component {
         <ReactECharts
           ref={(ref) => { this.echartRef = ref }}
           option={this.getOptions()}
-          style={{height: '100%'}}
+          style={{
+            minHeight: '100%',
+            overflowY: 'scroll',
+          }}
           />
         <PositionBar
           ref={(ref) => { this.positionBarRef = ref }}

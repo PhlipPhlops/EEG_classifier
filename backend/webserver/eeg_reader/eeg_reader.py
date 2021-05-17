@@ -26,6 +26,7 @@ def save_agnostic_to_edf(filepath):
   Returns the path to the edf
   """
   raw = _read_to_raw(filepath)
+  logger.info(raw.to_data_frame())
   edf_path = '.'.join(filepath.split('.')[:-1]) + '.edf'
   write_edf(raw, edf_path, overwrite=True)
   return edf_path
