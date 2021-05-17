@@ -43,7 +43,6 @@ class ClassifierInterface {
     formData.append('sid', this.sid)
     formData.append('file', file)
 
-    console.log(`UPLOADING TO: ${BASE_URL + '/edf-upload'}`)
     store.dispatch({
       type: 'server/upload_file'
     })
