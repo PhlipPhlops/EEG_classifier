@@ -22,6 +22,7 @@ class ElectrogramDisplay extends React.Component {
     this.chunkSize = null // (updated later)
     this.numChunkBuffers = 5 // Num chunks on either side ofthe viewport
     this.totalBufferSize = null
+    // Buffer start index is tied into markAreas which will save to file
     this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
     // Datazoom indices
     this.dz_start = 0
@@ -41,9 +42,7 @@ class ElectrogramDisplay extends React.Component {
   }
 
   /**
-   *
-   * Chart state management methods
-   *
+   * THIS COLLECTOIN OF METHODS HANDLES COMPONENT AND CHART INITIALIZATION
    */
   
   componentDidMount() {
@@ -86,12 +85,6 @@ class ElectrogramDisplay extends React.Component {
     this.selectHorizontalMultiBrush()
   }
 
-  /**
-   * 
-   * Charts user interaction methods
-   * 
-   */
-
   bindInteractionEvents = () => {
     /**
      * Called on chart load, use to bind chart events
@@ -116,6 +109,21 @@ class ElectrogramDisplay extends React.Component {
     })
   }
   
+  setBufferIndex = (newIndex) => {
+    // console.log(`New buffer index set: ${newIndex}`)
+    if (newIndex < 0) {
+      newIndex = 0
+    }
+    this.bufferStartIndex = newIndex
+  }
+
+  /**
+   * THIS COLLECTION OF METHODS HANDLES ALL THINGS PERTAINING TO MARKAREAS
+   * 
+   * ActiveMarkArea indices are relative to the TOTAL NUMBER OF SAMPLES
+   * so they can be safely saved to file. They are only adjusted to fit the screen
+   * during rendering
+   */
   selectHorizontalMultiBrush = () => {
     /**
      * Called on chart load to autoselect the brush
@@ -153,9 +161,6 @@ class ElectrogramDisplay extends React.Component {
     // https://github1s.com/apache/echarts/blob/f3471f0a7080e68f8819f7b000d32d73fb0820fb/src/component/toolbox/feature/Brush.ts
   }
 
-  /**
-   * MarkArea methods
-   */
   brushSelectionsToMarkArea = () => {
     // Merge selection areas into markAreas
     this.activeMarkAreas = this.activeMarkAreas.concat(
@@ -165,9 +170,9 @@ class ElectrogramDisplay extends React.Component {
             name: 'testMark',
             description: 'test',
             id: 'test1',
-            xAxis: range[0]
+            xAxis: range[0] + this.bufferStartIndex
           }, {
-            xAxis: range[1]
+            xAxis: range[1] + this.bufferStartIndex
           }
         ]
       })
@@ -180,8 +185,8 @@ class ElectrogramDisplay extends React.Component {
 
   deleteMarkArea = (event) => {
     let areaCoords = [
-      event.data.coord[0][0], // minX
-      event.data.coord[1][0], // maxX
+      event.data.coord[0][0] + this.bufferStartIndex, // minX
+      event.data.coord[1][0] + this.bufferStartIndex, // maxX
     ]
 
     // Filter the one data with these coords from the markArea array
@@ -195,7 +200,6 @@ class ElectrogramDisplay extends React.Component {
   }
 
   refreshMarkArea = (saveToNetwork) => {
-
     // Draw all active Mark Areas
     let echart = this.echartRef.getEchartsInstance()
     echart.setOption({
@@ -214,7 +218,18 @@ class ElectrogramDisplay extends React.Component {
           itemStyle: {
             color: '#00FF0099',
           },
-          data: this.activeMarkAreas
+          data: this.activeMarkAreas.map((area) => {
+            return [
+              {
+                ...area[0],
+                xAxis: area[0].xAxis - this.bufferStartIndex
+              },
+              {
+                ...area[1],
+                xAxis: area[1].xAxis - this.bufferStartIndex
+              }
+            ]
+          })
           //     show: true,
           //     formatter: () => 'This is a description of the area'
         }
@@ -238,6 +253,12 @@ class ElectrogramDisplay extends React.Component {
           }
         ]
      */
+    if (this.activeMarkAreas.length == 0) {
+      // Cancel early if called before markAreas is set
+      // otherwise the server will fail to parse
+      return
+    }
+
     let onsets = []
     let durations = []
     let descriptions = []
@@ -308,10 +329,7 @@ class ElectrogramDisplay extends React.Component {
 
     if (key == 'SPACEBAR') {
       // Use this method to test anything as result of a keypress
-      let echart = this.echartRef.getEchartsInstance()
-      echart.showLoading({
-        color: '#cccccc'
-      })
+      this.refreshMarkArea()
       return
     }
     
@@ -369,7 +387,8 @@ class ElectrogramDisplay extends React.Component {
   }
 
   /**
-   * Movement around the data event handlers 
+   * THIS COLLECTION OF FUNCTIONS HANDLES PANNING AROUND THE DATA
+   * INCLUDING ALL NETWORK REQUESTS TO ROLL IN DATA AS NEEDED
    */
   moveLeft = (isCtrlPressed) => {
     if (this.blockScrollMovement) {
@@ -475,7 +494,7 @@ class ElectrogramDisplay extends React.Component {
         }
 
         // Apply a shift to the bufferStartIndex for further requests
-        this.bufferStartIndex = this.bufferStartIndex - len
+        this.setBufferIndex(this.bufferStartIndex - len)
         this.dz_start = this.dz_start + len
         this.dz_end = this.dz_end + len
 
@@ -510,7 +529,7 @@ class ElectrogramDisplay extends React.Component {
         }
 
         // Apply a shift to the bufferStartIndex for further requests
-        this.bufferStartIndex = this.bufferStartIndex + len
+        this.setBufferIndex(this.bufferStartIndex + len)
         this.dz_start = this.dz_start - len
         this.dz_end = this.dz_end - len
 
@@ -519,7 +538,6 @@ class ElectrogramDisplay extends React.Component {
         this.blockScrollMovement = false;
       })
   }
-
 
   onScrollBarClick = (percentage) => {
     /**
@@ -533,7 +551,7 @@ class ElectrogramDisplay extends React.Component {
     let zoomStart = Math.ceil(percentage * this.numSamples)
     zoomStart = Math.round(zoomStart / this.chunkSize) * this.chunkSize
     
-    this.bufferStartIndex = zoomStart - (this.numChunkBuffers * this.chunkSize)
+    this.setBufferIndex(zoomStart - (this.numChunkBuffers * this.chunkSize))
     let fullBufferEnd = this.bufferStartIndex + (totalNumChunkBuffers * this.chunkSize)
 
     echart.showLoading()
@@ -574,13 +592,13 @@ class ElectrogramDisplay extends React.Component {
     let echart = this.echartRef.getEchartsInstance()
     let option = this.getOptions()
     echart.setOption(option)
+    // Must be called AFTER echart Set option else it gets erased
+    this.refreshMarkArea()
   }
 
 
   /**
-   * 
-   * Charts data requests, organization, and options
-   * 
+   * THIS COLLECTION OF METHODS HANDLES NETWORK REQUESTS AND DATA ORGANIZATION
    */
   initialDataLoad = () => {
     this.requestSamplesByIndex(0, this.totalBufferSize)
@@ -591,6 +609,9 @@ class ElectrogramDisplay extends React.Component {
           .then(() => {
             this.updateViewport()
             this.setState({})
+
+            netface.requestAnnotations()
+              .then(this.networkAnnotationsToMarkArea)
           })
       })
   }
@@ -606,49 +627,6 @@ class ElectrogramDisplay extends React.Component {
     console.log(`Requesting samples [ ${i_start} : ${i_end}] `)
     return netface.requestSamplesByIndex(i_start, i_end)
       .then((data) => data.json())
-  }
-
-
-
-
-
-
-  requestData = (n, N) => {
-    // Download chunks (from index 0 -> arbitrary total)
-    // If it's too heavy, raise total for smaller chunks
-    // ### LEGACY METHOD
-
-    // Use || n == <somenumber> to early stop for testing
-    // if (n == 5) {
-    if (n >= N) {
-      let sum = 0
-      for (let key in this.state.eegData) {
-        sum += this.state.eegData[key].length
-      }
-      // Data has been loaded into state.eegData,
-      console.log(`Data download complete! Sum: ${sum}`)
-      // Download annotations
-      netface.requestAnnotations()
-        .then(this.networkAnnotationsToMarkArea)
-      // SetState to redraw (calling too often makes it quite slow)
-      this.setState({})
-      return
-    }
-
-    console.log(`Requesting ${n+1} of ${N}`)
-    netface.requestChunk(n, N)
-      .then((data) => data.json())
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        // Organize and load data
-        let eegData = this.organizeEegData(chunk)
-        this.pushDataToSeries(eegData)
-          .then(() => {
-            // Call for next chunk
-            this.requestData(n+1, N)
-          })
-
-      })
   }
 
   pushDataToSeries = (data) => {
@@ -704,6 +682,44 @@ class ElectrogramDisplay extends React.Component {
     return orgedData
   }
 
+
+  requestData = (n, N) => {
+    // Download chunks (from index 0 -> arbitrary total)
+    // If it's too heavy, raise total for smaller chunks
+    // ### LEGACY METHOD
+
+    // Use || n == <somenumber> to early stop for testing
+    // if (n == 5) {
+    if (n >= N) {
+      let sum = 0
+      for (let key in this.state.eegData) {
+        sum += this.state.eegData[key].length
+      }
+      // Data has been loaded into state.eegData,
+      console.log(`Data download complete! Sum: ${sum}`)
+      // Download annotations
+      netface.requestAnnotations()
+        .then(this.networkAnnotationsToMarkArea)
+      // SetState to redraw (calling too often makes it quite slow)
+      this.setState({})
+      return
+    }
+
+    console.log(`Requesting ${n+1} of ${N}`)
+    netface.requestChunk(n, N)
+      .then((data) => data.json())
+      .then((data) => {
+        let chunk = JSON.parse(data.eeg_chunk)
+        // Organize and load data
+        let eegData = this.organizeEegData(chunk)
+        this.pushDataToSeries(eegData)
+          .then(() => {
+            // Call for next chunk
+            this.requestData(n+1, N)
+          })
+
+      })
+  }
 
 
   /**

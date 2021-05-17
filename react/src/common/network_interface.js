@@ -93,8 +93,6 @@ class ClassifierInterface {
       }
     })
       .then(response => {
-        console.log("Raw response from network")
-        console.log(response)
         return response.json()
       })
       // Call .then again to handle data later
