@@ -353,11 +353,13 @@ class ElectrogramDisplay extends React.Component {
       8: 'BACKSPACE',
       13: 'ENTER'
     }
+    let ctrl = event.ctrlKey || event.metaKey
     let key = keyCodes[event.keyCode]
     let sampleRate = store.getState().sampleRate
 
     if (key == 'SPACEBAR') {
       // Use this method to test anything as result of a keypress
+      console.log(event)
       this.refreshMarkArea()
       return
     }
@@ -375,16 +377,16 @@ class ElectrogramDisplay extends React.Component {
     }
     
     if (key == 'LEFT' || key == 'RIGHT') {
-      if (event.ctrlKey && event.altKey) {
+      if (ctrl && event.altKey) {
         this.changeChunkSize(key == 'LEFT')
         return
       }
 
       if (key == 'LEFT') {
-        this.moveLeft(event.ctrlKey)
+        this.moveLeft(ctrl)
       }
       if (key == 'RIGHT') {
-        this.moveRight(event.ctrlKey)
+        this.moveRight(ctrl)
       }
     }
 
@@ -393,14 +395,14 @@ class ElectrogramDisplay extends React.Component {
       let zoomRate = 1.5
       let translateAmt = 0.5*this.yZoom
       if (key == 'UP') {
-        if (event.ctrlKey) {
+        if (ctrl) {
           this.yTranslate = this.yTranslate + translateAmt
         } else {
           this.yZoom = this.yZoom / zoomRate
         }
       }
       if (key == 'DOWN') {
-        if (event.ctrlKey) {
+        if (ctrl) {
           this.yTranslate = this.yTranslate - translateAmt
         } else {
           this.yZoom = this.yZoom * zoomRate
