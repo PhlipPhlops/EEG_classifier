@@ -30,9 +30,12 @@ class ElectrogramDisplay extends React.Component {
     // when dz_start passes over these values, it'll update
     this.threshold_left = null
     this.threshold_right = null
+
+    // Movement flag to handle rapid pressing of the movment buttons
+    this.blockScrollMovement = false
     
     this.state = {
-      isChunkDownloadLocked: false,
+      isRenderIntitialized: false,
       eegData: {}
     }
   }
@@ -48,12 +51,12 @@ class ElectrogramDisplay extends React.Component {
 
     store.subscribe(() => {
       if (store.getState().serverStatus === 'UPLOADED'
-        && !this.state.isChunkDownloadLocked
+        && !this.state.isRenderIntitialized
         && Object.keys(this.state.eegData).length == 0)
       {
         // File has been successfully uploaded
         // Must be called before echartRef becomes active
-        this.setState({isChunkDownloadLocked: true})
+        this.setState({isRenderIntitialized: true})
         
         // Store variables from server
         this.sampleRate = store.getState().sampleRate
@@ -369,6 +372,10 @@ class ElectrogramDisplay extends React.Component {
    * Movement around the data event handlers 
    */
   moveLeft = (isCtrlPressed) => {
+    if (this.blockScrollMovement) {
+      return
+    }
+
     let changeRate = this.sampleRate
     if (isCtrlPressed) {
       changeRate = this.chunkSize
@@ -381,6 +388,10 @@ class ElectrogramDisplay extends React.Component {
   }
 
   moveRight = (isCtrlPressed) => {
+    if (this.blockScrollMovement) {
+      return
+    }
+
     let changeRate = this.sampleRate
     if (isCtrlPressed) {
       changeRate = this.chunkSize
@@ -440,7 +451,7 @@ class ElectrogramDisplay extends React.Component {
     let prevChunkEnd = this.bufferStartIndex
     let prevChunkStart = (this.bufferStartIndex) - (this.numChunkBuffers * this.chunkSize)
 
-
+    this.blockScrollMovement = true
     this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
       .then((data) => {
         let chunk = JSON.parse(data.eeg_chunk)
@@ -474,6 +485,7 @@ class ElectrogramDisplay extends React.Component {
 
         // Refresh options
         this.refreshOptions()
+        this.blockScrollMovement = false;
       })
   }
 
@@ -481,6 +493,8 @@ class ElectrogramDisplay extends React.Component {
     // next chunk indices refers to the indices of the actual data
     let nextChunkStart = (this.bufferStartIndex) + this.totalBufferSize
     let nextChunkEnd = nextChunkStart + (this.numChunkBuffers * this.chunkSize)
+
+    this.blockScrollMovement = true;
     this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
       .then((data) => {
         let chunk = JSON.parse(data.eeg_chunk)
@@ -514,6 +528,7 @@ class ElectrogramDisplay extends React.Component {
 
         // Refresh options
         this.refreshOptions()
+        this.blockScrollMovement = false;
       })
   }
 
@@ -870,7 +885,7 @@ class ElectrogramDisplay extends React.Component {
 
       dataZoom: [
         {
-          show: true,
+          show: false,
           xAxisIndex: Object.keys(series),
           type: 'slider',
           bottom: '2%',
