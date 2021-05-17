@@ -384,6 +384,12 @@ class ElectrogramDisplay extends React.Component {
     this.dz_start = this.dz_start - changeRate
     this.dz_end = this.dz_end - changeRate
 
+    // Check for overflow
+    if (this.bufferStartIndex + this.dz_start < 0) {
+      this.dz_start = 0
+      this.dz_end = this.dz_start + this.chunkSize
+    }
+
     this.updateViewport()
   }
 
@@ -399,6 +405,12 @@ class ElectrogramDisplay extends React.Component {
 
     this.dz_start = this.dz_start + changeRate
     this.dz_end = this.dz_end + changeRate
+
+    // Check for overflow
+    if (this.bufferStartIndex + this.dz_end > this.numSamples) {
+      this.dz_end = this.numSamples - this.bufferStartIndex
+      this.dz_start = this.dz_end - this.chunkSize
+    }
 
     this.updateViewport()
   }
@@ -417,8 +429,8 @@ class ElectrogramDisplay extends React.Component {
 
     this.positionBarRef.updatePosition(
       this.bufferStartIndex + this.dz_start,
-      this.totalBufferSize,
-      this.chunkSize
+      this.chunkSize,
+      this.numSamples,
     )
 
     this.updateDataBuffer()
@@ -510,19 +522,23 @@ class ElectrogramDisplay extends React.Component {
 
 
   onScrollBarClick = (percentage) => {
-    return
     /**
      * Delete all data and zoom to a new buffer 
      * Placed here because it's much more like rollData methods
      */
-    let totalNumChunkBuffers = this.numChunkBuffers * 2 + 1
+    let echart = this.echartRef.getEchartsInstance()
+    let totalNumChunkBuffers = (this.numChunkBuffers * 2) + 1
     
-    let zoomStart = Math.ceil(percentage * this.totalSamples)
-    let fullBufferStart = zoomStart - (this.numChunkBuffers * this.chunkSize)
-    let fullBufferEnd = fullBufferStart + (totalNumChunkBuffers * this.chunkSize)
+    // Round to nearest chunk size
+    let zoomStart = Math.ceil(percentage * this.numSamples)
+    zoomStart = Math.round(zoomStart / this.chunkSize) * this.chunkSize
+    
+    this.bufferStartIndex = zoomStart - (this.numChunkBuffers * this.chunkSize)
+    let fullBufferEnd = this.bufferStartIndex + (totalNumChunkBuffers * this.chunkSize)
 
+    echart.showLoading()
     this.blockScrollMovement = true;
-    this.requestSamplesByIndex(fullBufferStart, fullBufferEnd)
+    this.requestSamplesByIndex(this.bufferStartIndex, fullBufferEnd)
       .then((data) => {
         let chunk = JSON.parse(data.eeg_chunk)
         let eegData = this.organizeEegData(chunk)
@@ -541,12 +557,15 @@ class ElectrogramDisplay extends React.Component {
         }
 
         // Apply a shift to the bufferStartIndex for further requests
-        this.bufferStartIndex = this.fullBufferStart
-        this.dz_start = this.numChunkBuffers + this.chunkSize
+        this.dz_start = this.numChunkBuffers * this.chunkSize
         this.dz_end = this.dz_start + this.chunkSize
+
+        // Update viewport and scroll bar to the new position
+        this.updateViewport()
 
         // Refresh options
         this.refreshOptions()
+        echart.hideLoading()
         this.blockScrollMovement = false;
       })
   }
@@ -569,7 +588,10 @@ class ElectrogramDisplay extends React.Component {
         let chunk = JSON.parse(data.eeg_chunk)
         let eegData = this.organizeEegData(chunk)
         this.pushDataToSeries(eegData)
-          .then(() => this.setState({}))
+          .then(() => {
+            this.updateViewport()
+            this.setState({})
+          })
       })
   }
 
@@ -995,11 +1017,15 @@ class PositionBar extends React.Component {
     this.props.onClick(perc)
   }
 
-  updatePosition(bufferLeftIndex, totalBufferSize, chunkSize) {
-    // Calced in percents
+  updatePosition(leftZoomIndex, chunkSize, numSamples) {
+    /**
+     * Left zoom = bufferLeftIndex + datazoom left
+     * chunkSize is chunkSize
+     * numSamples is total num samples
+     */
     this.setState({
-      left: bufferLeftIndex / totalBufferSize,
-      width: chunkSize / totalBufferSize
+      left: (leftZoomIndex / numSamples) * 100,
+      width: Math.ceil((chunkSize / numSamples) * 100)
     })
   }
 
