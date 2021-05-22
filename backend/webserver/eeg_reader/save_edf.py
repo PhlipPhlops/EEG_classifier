@@ -23,7 +23,7 @@ import os
 import pyedflib  # pip install pyedflib
 
 
-def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False):
+def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False, orig_fname=''):
     """
     Saves the raw content of an MNE.io.Raw and its subclasses to
     a file using the EDF+ filetype
@@ -71,6 +71,9 @@ def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False):
     pmin, pmax = [channels.min(), channels.max()]
     n_channels = len(channels)
 
+    mne_raw.describe()
+    # print(mne_raw.describe(data_frame=True))
+
     # create channel from this
     try:
         f = pyedflib.EdfWriter(fname, n_channels=n_channels, file_type=file_type)
@@ -93,6 +96,10 @@ def write_edf(mne_raw, fname, picks=None, tmin=0, tmax=None, overwrite=False):
 
             channel_info.append(ch_dict)
             data_list.append(channels[i])
+
+            # print(data_list[-1])
+            # print(channels[i])
+            # print(channel_info[-1])
 
         f.setTechnician("mne-gist-save-edf-skjerns")
         f.setSignalHeaders(channel_info)

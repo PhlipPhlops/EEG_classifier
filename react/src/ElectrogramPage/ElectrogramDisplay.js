@@ -99,6 +99,8 @@ class ElectrogramDisplay extends React.Component {
 
 
   changeChunkSize(toBeSmaller) {
+    console.log("changeChunkSize() disabled")
+    return
     if (toBeSmaller) {
       this.secPerChunk = this.secPerChunk / 2
     } else {
