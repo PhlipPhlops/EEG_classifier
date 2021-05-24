@@ -11,7 +11,8 @@ from tensorflow import keras
 from scipy.signal import resample
 
 from ..transformations import Transforms
-from ..edf_reader import EDFReader, write_edf
+from ..mne_reader.edf_reader import EDFReader
+from ..mne_reader.save_edf import write_edf
 
 
 class EpilepsyClassifier:

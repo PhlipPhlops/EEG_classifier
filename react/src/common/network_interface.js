@@ -137,7 +137,7 @@ class ClassifierInterface {
     let formData = new FormData();
     formData.append('sid', this.sid)
 
-    return fetch(BASE_URL + '/edf-download', {
+    return fetch(BASE_URL + '/eeg-download', {
       method: 'POST',
       body: formData,
       headers: {

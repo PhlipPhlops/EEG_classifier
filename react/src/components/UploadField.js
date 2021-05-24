@@ -49,7 +49,7 @@ class UploadField extends React.Component {
         // Ensure file extension is edf
         let arr = this.filename.split(".");      // Split the string using dot as separator
         arr.pop()
-        arr.push('edf')
+        arr.push('fif')
         let filenameAsEDF = arr.join(".")
 
         saveAs(blob, filenameAsEDF)

@@ -10,8 +10,8 @@ from .classifier_interface import ClassifierInterface
 from .eeg_chunker import EegChunker
 from .socket_interface import SocketInterface
 from .session_manager import saveFilenameToSession, getFilenameBySid
-from .eeg_reader import save_agnostic_to_edf
-from ..edf_reader import EDFReader, write_edf
+from .eeg_reader import save_agnostic_to_fif
+from ..mne_reader.fif_reader import FIFReader
 
 from threading import Thread
 
@@ -32,24 +32,24 @@ def upload_anytype_eeg():
     og_filepath = "/tmp/" + f.filename
     f.save(og_filepath)
     # Convert file to RAW
-    #   Read from main 3 types: edf, nihon, cnt
+    #   Read from main 3 types: edf, nihon, , fif
     # Path contains '/tmp/'
-    edf_path = save_agnostic_to_edf(og_filepath)
+    fif_path = save_agnostic_to_fif(og_filepath)
 
     # Tell session manager where .edf is
-    saveFilenameToSession(sid, edf_path)
+    saveFilenameToSession(sid, fif_path)
 
     # Cache the edf as a dataframe
     chunker = EegChunker()
-    chunker.cache_eeg_dataframe(sid, edf_path)
+    chunker.cache_eeg_dataframe(sid, fif_path)
 
     # Tell client we're ready for it to request data chunks
     socketio.emit('edf uploaded', {}, room=sid)
 
     # Respond with sample rate
     response_data = {
-        "sample_rate": chunker.get_sample_rate(sid, edf_path),
-        "num_samples": chunker.get_num_samples(sid, edf_path)
+        "sample_rate": chunker.get_sample_rate(sid, fif_path),
+        "num_samples": chunker.get_num_samples(sid, fif_path)
     }
 
     return make_response(jsonify(response_data))
@@ -67,13 +67,13 @@ def save_annotations_to_file():
     # Find file
     filename = getFilenameBySid(sid)
     # Load as raw
-    edf = EDFReader(filename)
+    fif = FIFReader(filename)
     # Set annotations
-    edf.set_annotations(onsets, durations, descriptions)
+    fif.set_annotations(onsets, durations, descriptions)
     # Save back to file
-    write_edf(edf.raw_edf, filename, overwrite=True)
+    fif.save()
     # Return the saved annotations
-    return edf.get_annotations_as_df().to_json()
+    return fif.get_annotations_as_df().to_json()
 
 
 @app.route("/get-annotations", methods=["POST"])
@@ -82,13 +82,14 @@ def get_annotations_from_file():
     """
     sid = request.form['sid']
     filename = getFilenameBySid(sid)
-    edf = EDFReader(filename)
-    return edf.get_annotations_as_df().to_json()
+    fif = FIFReader(filename)
+    return fif.get_annotations_as_df().to_json()
 
 
-@app.route("/edf-download", methods=["POST"])
-def download_edf():
+@app.route("/eeg-download", methods=["POST"])
+def download_eeg():
     """Returns a file saved in /tmp/ if associated with keymap"""
+    # TODO: Change to file-download endpoint
     sid = request.form['sid']
     filename = getFilenameBySid(sid).lstrip('/tmp/')
     logger.info(f'Returning {filename}')
@@ -125,62 +126,62 @@ def sanity_check():
 
 
 
-@app.route("/edf-chunk", methods=["POST"])
-def retrieve_chunk():
-    """Grab a chunk of the data for the server to render
+# @app.route("/edf-chunk", methods=["POST"])
+# def retrieve_chunk():
+#     """Grab a chunk of the data for the server to render
 
-    ### LEGACY ENDPOINT
-    """
-    # grab sid, n and N
-    sid = request.form['sid']
-    chunk_i = int(request.form['chunk_i'])
-    chunks_total = int(request.form['chunk_total'])
-    # Retrieve cached dataframe and grab a chunk from it
-    chunker = EegChunker()
-    chunk_df = chunker.chunk_as_data_frame(sid, chunk_i, chunks_total)
+#     ### LEGACY ENDPOINT
+#     """
+#     # grab sid, n and N
+#     sid = request.form['sid']
+#     chunk_i = int(request.form['chunk_i'])
+#     chunks_total = int(request.form['chunk_total'])
+#     # Retrieve cached dataframe and grab a chunk from it
+#     chunker = EegChunker()
+#     chunk_df = chunker.chunk_as_data_frame(sid, chunk_i, chunks_total)
 
-    response_data = {
-        "eeg_chunk": chunk_df.to_json()
-    }
-    return make_response(jsonify(response_data))
+#     response_data = {
+#         "eeg_chunk": chunk_df.to_json()
+#     }
+#     return make_response(jsonify(response_data))
 
 
-@app.route("/edf-upload", methods=["POST"])
-def upload_edf():
-    """Take in an edf and store it in /tmp/, classify on it
-    and save the result. Then respond with the key from
-    annotated file so it can be retrieved later, along with
-    the data so it can be rendered
+# @app.route("/edf-upload", methods=["POST"])
+# def upload_edf():
+#     """Take in an edf and store it in /tmp/, classify on it
+#     and save the result. Then respond with the key from
+#     annotated file so it can be retrieved later, along with
+#     the data so it can be rendered
 
-    ### LEGACY ENDPOINT
-    """
-    sid = request.form['sid']
-    logger.info(f"EDF-UPLOAD: {sid}")
+#     ### LEGACY ENDPOINT
+#     """
+#     sid = request.form['sid']
+#     logger.info(f"EDF-UPLOAD: {sid}")
 
-    # Save file to /tmp/
-    f = request.files['file']
-    filepath = "/tmp/" + f.filename
-    f.save(filepath)
+#     # Save file to /tmp/
+#     f = request.files['file']
+#     filepath = "/tmp/" + f.filename
+#     f.save(filepath)
 
-    # Tell session manager where it is
-    saveFilenameToSession(sid, f.filename)
+#     # Tell session manager where it is
+#     saveFilenameToSession(sid, f.filename)
 
-    # Cache the edf as a dataframe
-    chunker = EegChunker()
-    chunker.cache_eeg_dataframe(sid, filepath)
-    # Tell client we're ready for it to request data chunks
-    socketio.emit('edf uploaded', {}, room=sid)
+#     # Cache the edf as a dataframe
+#     chunker = EegChunker()
+#     chunker.cache_eeg_dataframe(sid, filepath)
+#     # Tell client we're ready for it to request data chunks
+#     socketio.emit('edf uploaded', {}, room=sid)
 
-    # Initiate classifier on filepath
-    ### Classifier Disabled; save EC2 resources while testing
-    # def task():
-    #     ClassifierInterface(sid).initiate_classifier(filepath)
-    # thread = Thread(target=task)
-    # thread.daemon = True
-    # thread.start()
+#     # Initiate classifier on filepath
+#     ### Classifier Disabled; save EC2 resources while testing
+#     # def task():
+#     #     ClassifierInterface(sid).initiate_classifier(filepath)
+#     # thread = Thread(target=task)
+#     # thread.daemon = True
+#     # thread.start()
 
-    response_data = {
-        "sample_rate": chunker.get_sample_rate(sid, filepath)
-    }
+#     response_data = {
+#         "sample_rate": chunker.get_sample_rate(sid, filepath)
+#     }
 
-    return make_response(jsonify(response_data))
+#     return make_response(jsonify(response_data))

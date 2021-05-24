@@ -2,16 +2,17 @@
 with the client while handling methods in the edf classification task,
 including classification, file transfer, data transfer, etc.
 """
+# TODO: CURRENTLY BROKEN AFTER MIGRATION TO SOCKET INTERFACE AND SESSION MANAGER
+
 import os
 import random
 import string
 
 from .app_config import socketio
 from ..classify_epilepsy import EpilepsyClassifier
-from ..edf_reader import EDFReader
+from ..mne_reader.edf_reader import EDFReader
 
 
-# TODO: CURRENTLY BROKEN AFTER MIGRATION TO SOCKET INTERFACE AND SESSION MANAGER
 
 
 def classify_on_edf(filepath, edf, percent_callback=None):

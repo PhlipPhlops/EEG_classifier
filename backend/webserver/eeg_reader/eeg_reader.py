@@ -2,9 +2,8 @@
 """
 
 import mne
-from .save_edf import write_edf
 from ..app_config import logger
-from ...edf_reader import EDFReader
+from ...mne_reader import EDFReader
 
 def _read_to_raw(filepath):
   """Filetype agnostic method that reads to mne RAW type"""
@@ -12,6 +11,7 @@ def _read_to_raw(filepath):
     'edf': mne.io.read_raw_edf,
     'EEG': mne.io.read_raw_nihon,
     'cnt': mne.io.read_raw_cnt,
+    'fif': mne.io.read_raw_fif,
   }
   # Grab extension to determine
   extension = filepath.split('.')[-1]
@@ -19,17 +19,18 @@ def _read_to_raw(filepath):
 
   logger.info(filepath)
 
-  raw = read_file(filepath)
+  # See MNEReader's read from raw note on preload's expensiveness
+  raw = read_file(filepath, preload=True)
   return raw
 
-def save_agnostic_to_edf(filepath):
+def save_agnostic_to_fif(filepath):
   """Saves an agnostic filetype to .edf to work with later
   Returns the path to the edf
   """
   raw = _read_to_raw(filepath)
   # raw.resample(200)
-  edf_path = '.'.join(filepath.split('.')[:-1]) + '.edf'
-  write_edf(raw, edf_path, overwrite=True)
+  edf_path = '.'.join(filepath.split('.')[:-1]) + '_raw.fif'
+  raw.save(edf_path, overwrite=True)
 
   # edf = EDFReader(edf_path)
   # logger.info("READING AGNOSTICs")

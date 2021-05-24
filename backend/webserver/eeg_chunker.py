@@ -2,7 +2,8 @@ import os
 import time
 import pandas as pd
 from .app_config import cache
-from ..edf_reader import EDFReader
+import mne
+from ..mne_reader.fif_reader import  FIFReader
 
 
 class EegChunker:
@@ -15,8 +16,8 @@ class EegChunker:
         return '/tmp/'+'EEG_'+sid+'.pkl'
 
     def cache_eeg_dataframe(self, sid, filepath):
-        # Convert edf to dataframe
-        df = EDFReader(filepath).to_data_frame()
+        # Convert fif to dataframe
+        df = FIFReader(filepath).to_data_frame()
         # pickle dataframe to file
         df.to_pickle(self.save_path(sid))
 
@@ -30,11 +31,11 @@ class EegChunker:
 
     def get_sample_rate(self, sid, filepath):
         """Return the samplerate of the chunked file"""
-        return EDFReader(filepath).sample_rate
+        return FIFReader(filepath).sample_rate
 
     def get_num_samples(self, sid, filepath):
         """Return the total number of samples (time stamps) of chunked file"""
-        return EDFReader(filepath).to_data_frame().shape[1]
+        return FIFReader(filepath).to_data_frame().shape[1]
 
     def chunk_by_index(self, sid, i_start, i_end):
         """Returns samples of data from i_start up to, not including, i_end
@@ -61,7 +62,7 @@ class EegChunker:
                 time.sleep(1)
                 timeout_counter -= 1
             if timeout_counter == 0:
-                raise Exception("Timeout waiting for edf dataframe to write to pickle")
+                raise Exception("Timeout waiting for fif dataframe to write to pickle")
 
         # Hypothetically the value of this should be cached after chunk #1
         df = self.retrieve_from_pickle(sid)
