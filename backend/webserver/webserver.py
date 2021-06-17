@@ -34,6 +34,7 @@ def upload_anytype_eeg():
     # Convert file to RAW
     #   Read from main 3 types: edf, nihon, , fif
     # Path contains '/tmp/'
+    should_bipolar_preprocess = og_filepath.endswith('.EEG')
     fif_path = save_agnostic_to_fif(og_filepath)
 
     # Tell session manager where .edf is
@@ -41,7 +42,9 @@ def upload_anytype_eeg():
 
     # Cache the edf as a dataframe
     chunker = EegChunker()
-    chunker.cache_eeg_dataframe(sid, fif_path)
+    # WARNING: This cache_eeg_dataframe method contains
+    # code that manipulates the data retrieved from the file
+    chunker.cache_eeg_dataframe(sid, fif_path, should_bipolar_preprocess)
 
     # Tell client we're ready for it to request data chunks
     socketio.emit('edf uploaded', {}, room=sid)
