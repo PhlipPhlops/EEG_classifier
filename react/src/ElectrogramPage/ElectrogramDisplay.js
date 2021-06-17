@@ -792,7 +792,7 @@ class ElectrogramDisplay extends React.Component {
 
     // Layout configuration
     let bottomPadding = 5
-    let height = 20
+    let height = 40
     let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     keysArray.forEach((key) => {
