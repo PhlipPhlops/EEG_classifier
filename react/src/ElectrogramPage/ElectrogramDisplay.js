@@ -791,13 +791,28 @@ class ElectrogramDisplay extends React.Component {
     });
 
     // Layout configuration
-    let bottomPadding = 5
+    function generateGridTops(grid_height, num_grids) {
+      // Returns an array of the top value for each
+      // grid to be represented by keysArray
+      let padding = 5
+      let render_limits = [0+padding, 100-padding]
+      let jump_width = (100 - 2*padding) / num_grids
+      var list = [];
+      for (var i = render_limits[0]; i <= render_limits[1]; i += jump_width) {
+        let adjusted_top = i - (grid_height / 2)  
+        list.push(Math.ceil(adjusted_top));
+      }
+      return list
+    }
     let height = 40
-    let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
+    let topsList = generateGridTops(height, keysArray.length)
+    // let bottomPadding = 5
+    // let interval = Math.ceil(((100-height)-bottomPadding) / (keysArray.length + 1))
 
     keysArray.forEach((key) => {
       let i = keysArray.indexOf(key)
-      let grid_top = (i * interval) + "%"
+      let grid_top = topsList[i] + "%"
+      // let grid_top = (i * interval) + "%"
 
       grids.push({
         id: key,
