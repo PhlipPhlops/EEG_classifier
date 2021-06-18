@@ -27,7 +27,7 @@ class MNEBaseReader:
 
     def filter_body_motion(self):
         """Applies a 0.57hz lowpass filter to the data"""
-        self.raw.filter(0.57, None)
+        self.raw.filter(0.57, 35)
         self.df = self.raw.to_data_frame(scalings={"eeg": 1})
 
     def bipolar_preprocess_DEPRECATE_SOON(self):
