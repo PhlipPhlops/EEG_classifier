@@ -25,9 +25,17 @@ class MNEBaseReader:
         # class is init'ed) rather than leaving a memory map.
         return mne.io.read_raw_fif(file_path, preload=True)
 
+    def filter_body_motion(self):
+        """Applies a 0.57hz lowpass filter to the data"""
+        self.raw.filter(0.57, None)
+        self.df = self.raw.to_data_frame(scalings={"eeg": 1})
+
     def bipolar_preprocess_DEPRECATE_SOON(self):
         """Applies a standard bipolar montage subtraction to the dataframe
         """
+        df = self.df
+
+        # Apply montage
         montage = [
             # Bipolar data is [0] - [1]
             ['FP1', 'F3'],
@@ -54,7 +62,6 @@ class MNEBaseReader:
             ['T2','T1'],
         ]
 
-        df = self.df
         kept_columns = []
         for m in montage:
             if not m[0] in df.columns or not m[1] in df.columns:

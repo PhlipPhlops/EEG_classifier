@@ -19,8 +19,10 @@ class EegChunker:
         # Convert fif to dataframe
         fif = FIFReader(filepath)
         if should_bipolar_preprocess:
+            fif.filter_body_motion()
             fif.bipolar_preprocess_DEPRECATE_SOON()
         df = fif.to_data_frame()
+
         # pickle dataframe to file
         df.to_pickle(self.save_path(sid))
 
