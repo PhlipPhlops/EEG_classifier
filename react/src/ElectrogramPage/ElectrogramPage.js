@@ -35,7 +35,7 @@ const PageWrapper = styled.div`
   height: 100vh;
   display: grid;
   grid-gap: 3px;
-  grid-template-rows: 1.5fr 1.5rem 30fr 1.5rem 1.5rem 2fr;
+  grid-template-rows: 1.25fr 0.75rem 30fr 1.5rem 0.75rem 1.75fr;
 `;
 
 const UploadFieldParent = styled.div`

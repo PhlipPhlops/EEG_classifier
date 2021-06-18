@@ -794,7 +794,7 @@ class ElectrogramDisplay extends React.Component {
     function generateGridTops(grid_height, num_grids) {
       // Returns an array of the top value for each
       // grid to be represented by keysArray
-      let padding = 3
+      let padding = 4
       let render_limits = [0+padding, 100-padding]
       let jump_width = (100 - 2*padding) / num_grids
       var list = [];
