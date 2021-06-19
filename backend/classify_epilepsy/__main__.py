@@ -7,7 +7,7 @@ from .classify_epilepsy import EpilepsyClassifier
 ## Change window_size
 filename = sys.argv[1]
 save_name = filename[:-4] + "_0.5.3.edf"
-model_name = "neurogram_0.5.3.97acc.h5"
+model_name = "_0.5.3.97acc.h5"
 
 
 stored_models_dir_path = (
