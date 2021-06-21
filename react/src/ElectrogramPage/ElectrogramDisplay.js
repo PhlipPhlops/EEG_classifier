@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactECharts from 'echarts-for-react'
 
+import DataPaginator from './DataPaginator';
 import netface from '../common/network_interface';
 import store from '../common/reducers';
 import styled from 'styled-components';
@@ -16,36 +17,18 @@ class ElectrogramDisplay extends React.Component {
     this.activeMarkAreas = [];
 
     // OTHER VARIABLES
+    this.dataPaginator = new DataPaginator(this)
     this.removedAxies = ["time"] // time is filtered by default
     this.axiesToRemove = [] // Temporary storage before being pushed to removedAxies
 
-    // These variables are used for viewport control, leveraging
-    // echarts setOption() so no need for setState()
-    // ALL MUST BE SET AFTER FILE UPLOADED SIGNAL
-    this.sampleRate = null // samples per second
-    this.secPerChunk = 10
-    this.chunkSize = null // (updated later)
-    this.numChunkBuffers = 5 // Num chunks on either side ofthe viewport
-    this.totalBufferSize = null
-    // Buffer start index is tied into markAreas which will save to file
-    this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
-    // Datazoom indices
-    this.dz_start = 0
-    this.dz_end = this.chunkSize
-    // Thresholds on which to request more data
-    // when dz_start passes over these values, it'll update
-    this.threshold_left = null
-    this.threshold_right = null
     // Holds y-zoom data
     this.yZoom = .01
     this.yTranslate = 0
-
-    // Movement flag to handle rapid pressing of the movment buttons
-    this.blockScrollMovement = false
     
     this.state = {
+      // Point to paginators eegData as source of truth
+      eegData: this.dataPaginator.eegData,
       isRenderIntitialized: false,
-      eegData: {}
     }
   }
 
@@ -65,7 +48,7 @@ class ElectrogramDisplay extends React.Component {
         // Must be called before echartRef becomes active
         this.setState({isRenderIntitialized: true})
         
-        this.updateNavVariables()
+        this.dataPaginator.updateNavVariables()
         
         // Bind events and show loading
         let echart = this.echartRef.getEchartsInstance()
@@ -74,9 +57,7 @@ class ElectrogramDisplay extends React.Component {
           color: '#cccccc'
         })
         
-        this.initialDataLoad()
-        // LEGACY
-        // this.requestData(0, 10)
+        this.dataPaginator.initialDataLoad()
       }
     })
   }
@@ -84,30 +65,6 @@ class ElectrogramDisplay extends React.Component {
   onChartFirstRender() {
     this.selectHorizontalMultiBrush()
   }
-
-  updateNavVariables() {
-    // Store variables from server
-    this.sampleRate = store.getState().sampleRate
-    this.numSamples = store.getState().numSamples
-    this.chunkSize = Math.ceil(this.secPerChunk * this.sampleRate)
-    this.totalBufferSize = this.chunkSize * (this.numChunkBuffers * 2 + 1)
-    this.dz_end = this.dz_start + this.chunkSize
-    // Updates on threshold of the last chunk in the buffer (or first)
-    this.threshold_left = 2 * this.chunkSize
-    this.threshold_right = (this.numChunkBuffers * 2 - 1) * this.chunkSize
-  }
-
-
-  changeChunkSize(toBeSmaller) {
-    if (toBeSmaller) {
-      this.secPerChunk = this.secPerChunk / 2
-    } else {
-      this.secPerChunk = this.secPerChunk * 2
-    }
-    this.updateNavVariables()
-    this.updateViewport()
-  }
-
 
   bindInteractionEvents = () => {
     /**
@@ -138,13 +95,9 @@ class ElectrogramDisplay extends React.Component {
       }
     })
   }
-  
-  setBufferIndex = (newIndex) => {
-    // console.log(`New buffer index set: ${newIndex}`)
-    if (newIndex < 0) {
-      newIndex = 0
-    }
-    this.bufferStartIndex = newIndex
+
+  getBufferIndex = () => {
+    return this.dataPaginator.bufferStartIndex
   }
 
   /**
@@ -200,9 +153,9 @@ class ElectrogramDisplay extends React.Component {
             name: 'testMark',
             description: 'test',
             id: 'test1',
-            xAxis: range[0] + this.bufferStartIndex
+            xAxis: range[0] + this.getBufferIndex()
           }, {
-            xAxis: range[1] + this.bufferStartIndex
+            xAxis: range[1] + this.getBufferIndex()
           }
         ]
       })
@@ -215,8 +168,8 @@ class ElectrogramDisplay extends React.Component {
 
   deleteMarkArea = (event) => {
     let areaCoords = [
-      event.data.coord[0][0] + this.bufferStartIndex, // minX
-      event.data.coord[1][0] + this.bufferStartIndex, // maxX
+      event.data.coord[0][0] + this.getBufferIndex(), // minX
+      event.data.coord[1][0] + this.getBufferIndex(), // maxX
     ]
 
     // Filter the one data with these coords from the markArea array
@@ -252,11 +205,11 @@ class ElectrogramDisplay extends React.Component {
             return [
               {
                 ...area[0],
-                xAxis: area[0].xAxis - this.bufferStartIndex
+                xAxis: area[0].xAxis - this.getBufferIndex()
               },
               {
                 ...area[1],
-                xAxis: area[1].xAxis - this.bufferStartIndex
+                xAxis: area[1].xAxis - this.getBufferIndex()
               }
             ]
           })
@@ -355,7 +308,6 @@ class ElectrogramDisplay extends React.Component {
     }
     let ctrl = event.ctrlKey || event.metaKey
     let key = keyCodes[event.keyCode]
-    let sampleRate = store.getState().sampleRate
 
     if (key == 'SPACEBAR') {
       // Use this method to test anything as result of a keypress
@@ -377,16 +329,11 @@ class ElectrogramDisplay extends React.Component {
     }
     
     if (key == 'LEFT' || key == 'RIGHT') {
-      if (ctrl && event.altKey) {
-        this.changeChunkSize(key == 'LEFT')
-        return
-      }
-
       if (key == 'LEFT') {
-        this.moveLeft(ctrl)
+        this.dataPaginator.moveLeft(ctrl)
       }
       if (key == 'RIGHT') {
-        this.moveRight(ctrl)
+        this.dataPaginator.moveRight(ctrl)
       }
     }
 
@@ -435,156 +382,6 @@ class ElectrogramDisplay extends React.Component {
   }
 
 
-  /**
-   * THIS COLLECTION OF FUNCTIONS HANDLES PANNING AROUND THE DATA
-   * INCLUDING ALL NETWORK REQUESTS TO ROLL IN DATA AS NEEDED
-   */
-  moveLeft = (isCtrlPressed) => {
-    if (this.blockScrollMovement) {
-      return
-    }
-
-    let changeRate = this.chunkSize
-    if (!isCtrlPressed) {
-      changeRate = Math.ceil(changeRate / this.secPerChunk)
-    }
-
-    this.dz_start = this.dz_start - changeRate
-    this.dz_end = this.dz_end - changeRate
-
-    // Check for overflow
-    if (this.bufferStartIndex + this.dz_start < 0) {
-      this.dz_start = 0
-      this.dz_end = this.dz_start + this.chunkSize
-    }
-
-    this.updateViewport()
-  }
-
-  moveRight = (isCtrlPressed) => {
-    if (this.blockScrollMovement) {
-      return
-    }
-
-    let changeRate = this.chunkSize
-    if (!isCtrlPressed) {
-      changeRate = Math.ceil(changeRate / this.secPerChunk)
-    }
-
-    this.dz_start = this.dz_start + changeRate
-    this.dz_end = this.dz_end + changeRate
-
-    // Check for overflow
-    if (this.bufferStartIndex + this.dz_end > this.numSamples) {
-      this.dz_end = this.numSamples - this.bufferStartIndex
-      this.dz_start = this.dz_end - this.chunkSize
-    }
-
-    this.updateViewport()
-  }
-
-  updateViewport = () => {
-    // Using the current values stored in xAxisZoom, ensure there's adequate data
-    // on either side to buffer any data changes before moving left or right
-    let echart = this.echartRef.getEchartsInstance()
-
-    echart.dispatchAction({
-      type: 'dataZoom',
-      dataZoomIndex: 0,
-      startValue: this.dz_start,
-      endValue: this.dz_end,
-    })
-
-    this.positionBarRef.updatePosition(
-      this.bufferStartIndex + this.dz_start,
-      this.chunkSize,
-      this.numSamples,
-    )
-
-    this.updateDataBuffer()
-  }
-
-  updateDataBuffer = () => {
-    let echart = this.echartRef.getEchartsInstance()
-    if (this.dz_start < this.threshold_left) {
-      if (this.bufferStartIndex == 0) {
-        return
-      }
-      echart.showLoading()
-      this.rollDataLeft()
-    } else if (this.dz_start >= this.threshold_right) {
-      if (this.bufferStartIndex + this.totalBufferSize >= this.numSamples) {
-        return
-      }
-      echart.showLoading()
-      this.rollDataRight()
-    }
-  }
-
-  rollDataLeft = () => {
-    // next chunk indices refers to the indices of the actual data
-    let prevChunkEnd = this.bufferStartIndex
-    let prevChunkStart = (this.bufferStartIndex) - (this.numChunkBuffers * this.chunkSize)
-
-    this.blockScrollMovement = true
-    this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
-
-        // Postpend the data and remove prefix
-        let len = 0
-        for (let key in eegData) {
-          // DANGER in len: may shift the viewport size
-          len = eegData[key].length
-          // Remove prefix and push new data
-          this.state.eegData[key] = this.state.eegData[key].slice(0, this.state.eegData[key].length - len)
-          this.state.eegData[key].unshift(...eegData[key])
-        }
-
-        // Apply a shift to the bufferStartIndex for further requests
-        this.setBufferIndex(this.bufferStartIndex - len)
-        this.dz_start = this.dz_start + len
-        this.dz_end = this.dz_end + len
-
-        // Refresh options
-        this.refreshOptions()
-        this.blockScrollMovement = false;
-      })
-  }
-
-  rollDataRight = () => {
-    // next chunk indices refers to the indices of the actual data
-    let nextChunkStart = (this.bufferStartIndex) + this.totalBufferSize
-    let nextChunkEnd = nextChunkStart + ((this.numChunkBuffers) * this.chunkSize)
-
-    this.blockScrollMovement = true;
-    this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
-
-        // Postpend the data and remove prefix
-        let len = 0
-        for (let key in eegData) {
-          // DANGER in len: may shift the viewport size
-          len = eegData[key].length
-          // Remove prefix and push new data
-          this.state.eegData[key] = this.state.eegData[key].slice(len)
-          this.state.eegData[key].push(...eegData[key])
-        }
-
-        // Apply a shift to the bufferStartIndex for further requests
-        this.setBufferIndex(this.bufferStartIndex + len)
-        this.dz_start = this.dz_start - len
-        this.dz_end = this.dz_end - len
-
-        // Refresh options
-        this.refreshOptions()
-        this.blockScrollMovement = false;
-      })
-  }
-
   onScrollBarClick = (percentage) => {
     /**
      * Delete all data and zoom to a new buffer 
@@ -598,11 +395,11 @@ class ElectrogramDisplay extends React.Component {
     zoomStart = Math.round(zoomStart / this.chunkSize) * this.chunkSize
     
     this.setBufferIndex(zoomStart - (this.numChunkBuffers * this.chunkSize))
-    let fullBufferEnd = this.bufferStartIndex + (totalNumChunkBuffers * this.chunkSize)
+    let fullBufferEnd = this.getBufferIndex() + (totalNumChunkBuffers * this.chunkSize)
 
     echart.showLoading()
     this.blockScrollMovement = true;
-    this.requestSamplesByIndex(this.bufferStartIndex, fullBufferEnd)
+    this.requestSamplesByIndex(this.getBufferIndex(), fullBufferEnd)
       .then((data) => {
         let chunk = JSON.parse(data.eeg_chunk)
         let eegData = this.organizeEegData(chunk)
@@ -648,128 +445,6 @@ class ElectrogramDisplay extends React.Component {
     this.refreshMarkArea()
     this.selectHorizontalMultiBrush()
     echart.hideLoading()
-  }
-
-
-  /**
-   * THIS COLLECTION OF METHODS HANDLES NETWORK REQUESTS AND DATA ORGANIZATION
-   */
-  initialDataLoad = () => {
-    this.requestSamplesByIndex(0, this.totalBufferSize)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
-        this.pushDataToSeries(eegData)
-          .then(() => {
-            this.updateViewport()
-            this.setState({})
-
-            netface.requestAnnotations()
-              .then(this.networkAnnotationsToMarkArea)
-          })
-      })
-  }
-
-  requestSamplesByIndex = (i_start, i_end) => {
-    // Returns a promise representing a JSON of the data
-    if (i_start < 0) {
-      i_start = 0
-    }
-    if (i_end > this.numSamples) {
-      i_end = this.numSamples
-    }
-    console.log(`Requesting samples [ ${i_start} : ${i_end}] `)
-    return netface.requestSamplesByIndex(i_start, i_end)
-      .then((data) => data.json())
-  }
-
-  pushDataToSeries = (data) => {
-    return new Promise((resolve, reject) => {
-      for (let key in data) {
-        if (!(key in this.state.eegData)) {
-          this.state.eegData[key] = []
-        }
-        this.state.eegData[key].push(...data[key])
-      }
-      resolve()
-    })
-  }
-
-  organizeEegData(chunk) {
-    /*
-      originally arranged
-      0: {
-        E1: val,
-        E2: val,
-        E3: val,
-        ...
-        time: 0
-      },
-      1: {E1: val, ..., time: 2}
-
-      output arrangement
-      E1: [val1, val2, val3, ...]
-      E2: [val1, val2, val3, ...]
-      ...
-
-      also outputs time var
-    */
-    // Grab iterable and electrode labels (includes time label if present)
-    let keysList = Object.keys(chunk)
-    let electrodeList = Object.keys(chunk[keysList[0]])
-    // Create empty lists
-    let orgedData = {}
-    electrodeList.forEach((elec) => {
-      orgedData[elec] = []
-    })
-    
-    // The big loop: populate lists
-    keysList.forEach((key) => {
-      electrodeList.forEach((elec) => {
-        orgedData[elec].push(chunk[key][elec])
-      })
-    })
-
-    return orgedData
-  }
-
-
-  requestData = (n, N) => {
-    // Download chunks (from index 0 -> arbitrary total)
-    // If it's too heavy, raise total for smaller chunks
-    // ### LEGACY METHOD
-
-    // Use || n == <somenumber> to early stop for testing
-    // if (n == 5) {
-    if (n >= N) {
-      let sum = 0
-      for (let key in this.state.eegData) {
-        sum += this.state.eegData[key].length
-      }
-      // Data has been loaded into state.eegData,
-      console.log(`Data download complete! Sum: ${sum}`)
-      // Download annotations
-      netface.requestAnnotations()
-        .then(this.networkAnnotationsToMarkArea)
-      // SetState to redraw (calling too often makes it quite slow)
-      this.setState({})
-      return
-    }
-
-    console.log(`Requesting ${n+1} of ${N}`)
-    netface.requestChunk(n, N)
-      .then((data) => data.json())
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        // Organize and load data
-        let eegData = this.organizeEegData(chunk)
-        this.pushDataToSeries(eegData)
-          .then(() => {
-            // Call for next chunk
-            this.requestData(n+1, N)
-          })
-
-      })
   }
 
 
@@ -843,7 +518,7 @@ class ElectrogramDisplay extends React.Component {
           show: (i == keysArray.length - 1), // Only show on last grid
           interval: sampleRate - 1,
           formatter: (value, index) => {
-            return (this.bufferStartIndex + parseInt(value)) / sampleRate
+            return (this.getBufferIndex() + parseInt(value)) / sampleRate
           }
         },
         axisLine: {
@@ -953,7 +628,7 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           interval: sampleRate - 1,
           formatter: (value, index) => {
-            return (value + this.bufferStartIndex) / sampleRate
+            return (value + this.getBufferIndex()) / sampleRate
           }
         },
         axisLine: {
@@ -980,10 +655,8 @@ class ElectrogramDisplay extends React.Component {
     configureBacksplashGrid()
 
     /**
-     * 
      * The actual configuration for the chart
      * Loads in all of the previously filled grids, xAxies, yAxies, and series
-     * 
      */
     let options = {
       // Use the values configured above
@@ -1061,7 +734,11 @@ class ElectrogramDisplay extends React.Component {
     return (
       <EDParent>
         <ReactECharts
-          ref={(ref) => { this.echartRef = ref }}
+          ref={(ref) => {
+            this.echartRef = ref
+            // Update echartRef in the DataPaginator too
+            this.dataPaginator.echartRef = ref
+          }}
           option={this.getOptions()}
           style={{
             height: '100%',
