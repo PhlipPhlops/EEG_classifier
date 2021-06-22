@@ -494,11 +494,6 @@ class ElectrogramDisplay extends React.Component {
         height: height + "%",
         show: true,
         name: key,
-        tooltip: {
-          show: true,
-          trigger: 'axis',
-          showDelay: 25
-        },
         containLabel: false, // Help grids aligned by axis
         borderWidth: 0
       })
@@ -563,6 +558,9 @@ class ElectrogramDisplay extends React.Component {
         lineStyle: {
           width: 0.5,
           color: 'black',
+        },
+        tooltip: {
+          show: true,
         },
         gridIndex: i,
         yAxisIndex: i,
@@ -666,10 +664,6 @@ class ElectrogramDisplay extends React.Component {
 
       // Other Configuration options
       animation: false,
-
-      tooltip: {
-        show: true,
-      },
 
       // toolbox hidden
       toolbox: {
