@@ -533,7 +533,6 @@ class ElectrogramDisplay extends React.Component {
         nameLocation: 'start',
       })
 
-      // let scaleMax = new MyMaths().roundToNextDigit(Math.max(...this.state.eegData[key]))
       let scaleMax = 1
       let scaleMin = -scaleMax
 
@@ -833,34 +832,3 @@ const PositionParents = styled.div`
   margin-bottom: 5px;
   pointer-events: auto;
 `;
-
-class MyMaths {
-  roundToNextDigit = (flt) => {
-    if (flt <= 0) flt = flt * -1
-    // For configuring max and min on yAxis scale
-    // Flt should be a positive float
-    // Find the order of the float
-    let ctr = 0
-    if (flt > 1) {
-      while (flt > 1) {
-        flt = flt / 10
-        ctr = ctr + 1
-      }
-    } else if (flt > 0) {
-      while (flt < 1) {
-        flt = flt * 10
-        ctr = ctr - 1
-      }
-    }
-    if (ctr > 0) return 10**(ctr - 1)
-    if (ctr < 0) return 10**(ctr + 1)
-  }
-
-  absoluteAvg = (array) => {
-    return array.reduce((a, b) => {
-      if (a < 0) a = a * -1
-      if (b < 0) b = b * -1
-      return a + b
-    }) / array.length;
-  }
-}
