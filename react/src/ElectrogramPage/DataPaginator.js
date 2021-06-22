@@ -22,21 +22,42 @@ class DataPaginator {
     // echarts setOption()
     // ALL MUST BE SET AFTER FILE UPLOADED SIGNAL
     this.sampleRate = null // samples per second
-    this.secPerChunk = 10
-    this.chunkSize = null // (updated later)
-    this.numChunkBuffers = 5 // Num chunks on either side ofthe viewport
+    this.secsInViewport = 10
+    this.samplesInViewport = null
+    // Number of viewports worth of data on either side of the viewport
+    // to preload
+    this.numPagesToPreload = 3
+    // These vars marked for deletion
     this.totalBufferSize = null
     
     // Buffer start index is tied into markAreas which will save to file
     // Modified by electrogram
     this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
     
-    // Datazoom indices
-    this.dz_start = 0
-    this.dz_end = this.chunkSize
+    // Data buffer
+    this.buffer = {
+      pre: { // unloaded eeg data that belongs to earlier indices
+        start_i: null,
+        end_i: null,
+        data: {},
+      },
+      post: { // unloaded eeg data that belongs to later indices
+        start_i: null,
+        end_i: null,
+        data: {},
+      },
+      loaded: {
+        start_i: null,
+        end_i: null,
+      },
+      dz: { // datazoom values
+        start_i: 0,
+        end_i: null,
+      }
+    }
 
     // Thresholds on which to request more data
-    // when dz_start passes over these values, it'll update
+    // when buffer.dz.start_i passes over these values, it'll update
     this.threshold_left = null
     this.threshold_right = null
 
@@ -52,12 +73,14 @@ class DataPaginator {
     // Store variables from server
     this.sampleRate = store.getState().sampleRate
     this.numSamples = store.getState().numSamples
-    this.chunkSize = Math.ceil(this.secPerChunk * this.sampleRate)
-    this.totalBufferSize = this.chunkSize * (this.numChunkBuffers * 2 + 1)
-    this.dz_end = this.dz_start + this.chunkSize
+    this.samplesInViewport = Math.ceil(this.secsInViewport * this.sampleRate)
+
+    this.totalBufferSize = this.samplesInViewport * (this.numPagesToPreload * 2 + 1)
+    this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
+    
     // Updates on threshold of the last chunk in the buffer (or first)
-    this.threshold_left = 2 * this.chunkSize
-    this.threshold_right = (this.numChunkBuffers * 2 - 1) * this.chunkSize
+    this.threshold_left = 2 * this.samplesInViewport
+    this.threshold_right = (this.numPagesToPreload * 2 - 1) * this.samplesInViewport
   }
 
   setBufferIndex = (newIndex) => {
@@ -74,47 +97,55 @@ class DataPaginator {
    */
   moveLeft = (isCtrlPressed) => {
     if (this.blockScrollMovement) {
+      let echart = this.echartRef.getEchartsInstance()
+      echart.showLoading()
       return
     }
 
-    let changeRate = this.chunkSize
+    let changeRate = this.samplesInViewport
     if (!isCtrlPressed) {
-      changeRate = Math.ceil(changeRate / this.secPerChunk)
+      changeRate = Math.ceil(changeRate / this.secsInViewport)
     }
 
-    this.dz_start = this.dz_start - changeRate
-    this.dz_end = this.dz_end - changeRate
+    this.buffer.dz.start_i = this.buffer.dz.start_i - changeRate
+    this.buffer.dz.end_i = this.buffer.dz.end_i - changeRate
 
     // Check for overflow
-    if (this.bufferStartIndex + this.dz_start < 0) {
-      this.dz_start = 0
-      this.dz_end = this.dz_start + this.chunkSize
+    if (this.bufferStartIndex + this.buffer.dz.start_i < 0) {
+      this.buffer.dz.start_i = 0
+      this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
     }
 
     this.updateViewport()
+    this.updateBufferLeft(changeRate)
+    // Legacy
     this.updateDataBuffer()
   }
 
   moveRight = (isCtrlPressed) => {
     if (this.blockScrollMovement) {
+      let echart = this.echartRef.getEchartsInstance()
+      echart.showLoading()
       return
     }
 
-    let changeRate = this.chunkSize
+    let changeRate = this.samplesInViewport
     if (!isCtrlPressed) {
-      changeRate = Math.ceil(changeRate / this.secPerChunk)
+      changeRate = Math.ceil(changeRate / this.secsInViewport)
     }
 
-    this.dz_start = this.dz_start + changeRate
-    this.dz_end = this.dz_end + changeRate
+    this.buffer.dz.start_i = this.buffer.dz.start_i + changeRate
+    this.buffer.dz.end_i = this.buffer.dz.end_i + changeRate
 
     // Check for overflow
-    if (this.bufferStartIndex + this.dz_end > this.numSamples) {
-      this.dz_end = this.numSamples - this.bufferStartIndex
-      this.dz_start = this.dz_end - this.chunkSize
+    if (this.bufferStartIndex + this.buffer.dz.end_i > this.numSamples) {
+      this.buffer.dz.end_i = this.numSamples - this.bufferStartIndex
+      this.buffer.dz.start_i = this.buffer.dz.end_i - this.samplesInViewport
     }
 
     this.updateViewport()
+    this.updateBufferRight(changeRate)
+    // Legacy
     this.updateDataBuffer()
   }
 
@@ -126,30 +157,72 @@ class DataPaginator {
     echart.dispatchAction({
       type: 'dataZoom',
       dataZoomIndex: 0,
-      startValue: this.dz_start,
-      endValue: this.dz_end,
+      startValue: this.buffer.dz.start_i,
+      endValue: this.buffer.dz.end_i,
     })
 
     // this.positionBarRef.updatePosition(
-    //   this.bufferStartIndex + this.dz_start,
-    //   this.chunkSize,
+    //   this.bufferStartIndex + this.buffer.dz.start_i,
+    //   this.samplesInViewport,
     //   this.numSamples,
     // )
   }
 
+  updateBufferLeft = (changeRate) => {
+    let chunkEnd = this.buffer.pre.start_i
+    let chunkStart = chunkEnd - changeRate
+    
+    this.requestSamplesByIndex(chunkStart, chunkEnd)
+      .then((data) => {
+        // Update buffer indices
+        this.buffer.pre.start_i = data.start_i
+        // Load data into buffer
+        console.log(`Left loaded: [${data.start_i}, ${data.end_i}]`)
+      })
+  }
+
+  updateBufferRight = (changeRate) => {
+    let chunkStart = this.buffer.post.end_i
+    let chunkEnd = chunkStart + changeRate
+
+    this.requestSamplesByIndex(chunkStart, chunkEnd)
+      .then((data) => {
+        // Update buffer indices
+        this.buffer.post.end_i = data.end_i
+        // Load data into buffer
+        console.log(`Right loaded: [${data.start_i}, ${data.end_i}]`)
+      })
+  }
+
   updateDataBuffer = () => {
-    let echart = this.echartRef.getEchartsInstance()
-    if (this.dz_start < this.threshold_left) {
+    /**
+     * Called on every move
+     * 
+     * By the time this method is called, the viewport has been
+     * updated (buffer.dz.start_i, and buffer.dz.end_i have been modified and dispatched)
+     * 
+     * Nextstep is to query for new data and add it to the databuffer
+     * 
+     * If a threshhold has been passed, rollData into the buffer,
+     * chop off the old data and clear the buffer
+     * Threshold defined as:
+     *  if ONE more ctrl->move would attempt to view unloaded data
+     *  thus if theres any less (strictly) than two viewports, update
+     * 
+     * If another move is requested before dataRoll is completed,
+     * block movement and showLoading until it's done.
+     */
+
+    /// LEGACY
+    if (this.buffer.dz.start_i < this.threshold_left) {
       if (this.bufferStartIndex == 0) {
         return
       }
-      echart.showLoading()
       this.rollDataLeft()
-    } else if (this.dz_start >= this.threshold_right) {
+    } else if (this.buffer.dz.start_i >= this.threshold_right) {
       if (this.bufferStartIndex + this.totalBufferSize >= this.numSamples) {
         return
       }
-      echart.showLoading()
       this.rollDataRight()
     }
   }
@@ -157,7 +230,7 @@ class DataPaginator {
   rollDataLeft = () => {
     // next chunk indices refers to the indices of the actual data
     let prevChunkEnd = this.bufferStartIndex
-    let prevChunkStart = (this.bufferStartIndex) - (this.numChunkBuffers * this.chunkSize)
+    let prevChunkStart = (this.bufferStartIndex) - (this.numPagesToPreload * this.samplesInViewport)
 
     this.blockScrollMovement = true
     this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
@@ -177,8 +250,8 @@ class DataPaginator {
 
         // Apply a shift to the bufferStartIndex for further requests
         this.setBufferIndex(this.bufferStartIndex - len)
-        this.dz_start = this.dz_start + len
-        this.dz_end = this.dz_end + len
+        this.buffer.dz.start_i = this.buffer.dz.start_i + len
+        this.buffer.dz.end_i = this.buffer.dz.end_i + len
 
         // Refresh options
         this.electrogram.refreshOptions()
@@ -190,7 +263,7 @@ class DataPaginator {
   rollDataRight = () => {
     // next chunk indices refers to the indices of the actual data
     let nextChunkStart = (this.bufferStartIndex) + this.totalBufferSize
-    let nextChunkEnd = nextChunkStart + ((this.numChunkBuffers) * this.chunkSize)
+    let nextChunkEnd = nextChunkStart + ((this.numPagesToPreload) * this.samplesInViewport)
 
     this.blockScrollMovement = true;
     this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
@@ -210,8 +283,8 @@ class DataPaginator {
 
         // Apply a shift to the bufferStartIndex for further requests
         this.setBufferIndex(this.bufferStartIndex + len)
-        this.dz_start = this.dz_start - len
-        this.dz_end = this.dz_end - len
+        this.buffer.dz.start_i = this.buffer.dz.start_i - len
+        this.buffer.dz.end_i = this.buffer.dz.end_i - len
 
         // Refresh options
         this.electrogram.refreshOptions()
@@ -232,6 +305,22 @@ class DataPaginator {
         let eegData = this.organizeEegData(chunk)
         this.pushDataToSeries(eegData)
           .then(() => {
+
+            this.buffer.loaded = {
+              start_i: 0,
+              end_i: this.totalBufferSize
+            }
+            this.buffer.pre = {
+              start_i: 0,
+              end_i: 0,
+              data: {}
+            }
+            this.buffer.post = {
+              start_i: this.totalBufferSize,
+              end_i: this.totalBufferSize,
+              data: {}
+            }
+
             this.electrogram.setState({})
             this.updateViewport()
 
@@ -252,9 +341,18 @@ class DataPaginator {
     console.log(`Requesting samples [ ${i_start} : ${i_end}] `)
     return netface.requestSamplesByIndex(i_start, i_end)
       .then((data) => data.json())
+      .then((data) => {
+        data.start_i = i_start
+        data.end_i = i_end
+        return data
+      })
   }
 
   pushDataToSeries = (data) => {
+    /*
+      This method expects data formatted as is returned  from
+      organizeEegData and pushes it to the eegData object
+     */
     return new Promise((resolve, reject) => {
       for (let key in data) {
         if (!(key in this.eegData)) {
