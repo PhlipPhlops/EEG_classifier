@@ -34,7 +34,6 @@ class DataPaginator {
     // to preload
     // Buffer start index is tied into markAreas which will save to file
     // Modified by electrogram
-    this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
     
     
     // Data buffer
@@ -54,7 +53,7 @@ class DataPaginator {
         // or less if squished to the right side of totalData
       },
       loaded: {
-        start_i: null,
+        start_i: 0, // Index of loaded chunks relative to total num samples
         end_i: null,
         // eegData is its own variable
       },
@@ -83,12 +82,12 @@ class DataPaginator {
     this.numSamples = store.getState().numSamples
     this.samplesInViewport = Math.ceil(this.secsInViewport * this.sampleRate)
 
-    this.loadedDataWidth = this.samplesInViewport * (this.numPagesToLoad * 2 + 1)
+    this.loadedDataWidth = this.samplesInViewport * this.numPagesToLoad
     this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
     
     // Updates on threshold of the last chunk in the buffer (or first)
-    this.threshold_left = 2 * this.samplesInViewport
-    this.threshold_right = (this.numPagesToLoad * 2 - 1) * this.samplesInViewport
+    this.threshold_left = this.samplesInViewport // One page off the left edge
+    this.threshold_right = this.loadedDataWidth - this.samplesInViewport // one page off the right edge
   }
 
   setBufferIndex = (newIndex) => {
@@ -96,7 +95,8 @@ class DataPaginator {
     if (newIndex < 0) {
       newIndex = 0
     }
-    this.bufferStartIndex = newIndex
+    this.buffer.loaded.start_i = newIndex
+    this.buffer.loaded.end_i = newIndex + this.loadedDataWidth
   }
 
   /**
@@ -119,7 +119,7 @@ class DataPaginator {
     this.buffer.dz.end_i = this.buffer.dz.end_i - changeRate
 
     // Check for overflow
-    if (this.bufferStartIndex + this.buffer.dz.start_i < 0) {
+    if (this.buffer.loaded.start_i + this.buffer.dz.start_i < 0) {
       this.buffer.dz.start_i = 0
       this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
     }
@@ -147,22 +147,27 @@ class DataPaginator {
     this.buffer.dz.end_i = this.buffer.dz.end_i + changeRate
 
     // Check for overflow
-    if (this.bufferStartIndex + this.buffer.dz.end_i > this.numSamples) {
-      this.buffer.dz.end_i = this.numSamples - this.bufferStartIndex
+    if (this.buffer.loaded.start_i + this.buffer.dz.end_i > this.numSamples) {
+      this.buffer.dz.end_i = this.numSamples - this.buffer.loaded.start_i
       this.buffer.dz.start_i = this.buffer.dz.end_i - this.samplesInViewport
     }
+
+    console.log(this.buffer)
+    console.log(this.threshold_left)
+    console.log(this.threshold_right)
 
     this.updateViewport()
     this.checkBufferRight()
     // this.updateBufferRight(changeRate)
     // // Legacy
-    this.updateDataBuffer()
+    // this.updateDataBuffer()
   }
 
   updateViewport = () => {
     // Using the current values stored in xAxisZoom, ensure there's adequate data
     // on either side to buffer any data changes before moving left or right
     let echart = this.echartRef.getEchartsInstance()
+    console.log("In update viewport")
 
     echart.dispatchAction({
       type: 'dataZoom',
@@ -172,10 +177,13 @@ class DataPaginator {
     })
 
     // this.positionBarRef.updatePosition(
-    //   this.bufferStartIndex + this.buffer.dz.start_i,
+    //   this.buffer.loaded.start_i + this.buffer.dz.start_i,
     //   this.samplesInViewport,
     //   this.numSamples,
     // )
+
+    // Drop data buffer here to be used after dispatch
+    this.updateDataBuffer()
   }
 
   checkBufferLeft = (changeRate) => {
@@ -240,12 +248,14 @@ class DataPaginator {
 
     /// LEGACY
     if (this.buffer.dz.start_i < this.threshold_left) {
-      if (this.bufferStartIndex == 0) {
+      if (this.buffer.loaded.start_i == 0) {
+        // Check to avoid rolling data into unloadable terrirory
         return
       }
       this.rollDataLeft()
-    } else if (this.buffer.dz.start_i >= this.threshold_right) {
-      if (this.bufferStartIndex + this.loadedDataWidth >= this.numSamples) {
+    } else if (this.buffer.dz.end_i > this.threshold_right) {
+      if (this.buffer.loaded.end_i >= this.numSamples) {
+        // Check to avoid rolling data into unloadable terrirory
         return
       }
       this.rollDataRight()
@@ -253,65 +263,114 @@ class DataPaginator {
   }
 
   rollDataLeft = () => {
+    console.log("in rollDataLeft")
+
     // next chunk indices refers to the indices of the actual data
-    let prevChunkEnd = this.bufferStartIndex
-    let prevChunkStart = (this.bufferStartIndex) - (this.numPagesToLoad * this.samplesInViewport)
+    // let prevChunkEnd = this.buffer.loaded.start_i
+    // let prevChunkStart = (this.buffer.loaded.start_i) - (this.numPagesToLoad * this.samplesInViewport)
 
-    this.blockScrollMovement = true
-    this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
-      .then((eegData) => {
+    // this.blockScrollMovement = true
+    // this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
+    //   .then((eegData) => {
 
-        // Postpend the data and remove prefix
-        let len = 0
-        for (let key in eegData) {
-          // DANGER in len: may shift the viewport size
-          len = eegData[key].length
-          // Remove prefix and push new data
-          this.eegData[key] = this.eegData[key].slice(0, this.eegData[key].length - len)
-          this.eegData[key].unshift(...eegData[key])
-        }
+    //     // Postpend the data and remove prefix
+    //     let len = 0
+    //     for (let key in eegData) {
+    //       // DANGER in len: may shift the viewport size
+    //       len = eegData[key].length
+    //       // Remove prefix and push new data
+    //       this.eegData[key] = this.eegData[key].slice(0, this.eegData[key].length - len)
+    //       this.eegData[key].unshift(...eegData[key])
+    //     }
 
-        // Apply a shift to the bufferStartIndex for further requests
-        this.setBufferIndex(this.bufferStartIndex - len)
-        this.buffer.dz.start_i = this.buffer.dz.start_i + len
-        this.buffer.dz.end_i = this.buffer.dz.end_i + len
+    //     // Apply a shift to the buffer.loaded.start_i for further requests
+    //     this.setBufferIndex(this.buffer.loaded.start_i - len)
+    //     this.buffer.dz.start_i = this.buffer.dz.start_i + len
+    //     this.buffer.dz.end_i = this.buffer.dz.end_i + len
 
-        // Refresh options
-        this.electrogram.refreshOptions()
-        this.updateViewport()
-        this.blockScrollMovement = false;
-      })
+    //     // Refresh options
+    //     this.electrogram.refreshOptions()
+    //     this.updateViewport()
+    //     this.blockScrollMovement = false;
+    //   })
   }
 
   rollDataRight = () => {
-    // next chunk indices refers to the indices of the actual data
-    let nextChunkStart = (this.bufferStartIndex) + this.loadedDataWidth
-    let nextChunkEnd = nextChunkStart + ((this.numPagesToLoad) * this.samplesInViewport)
+    // Snaps data from buffer into the live eegData, removing far data
+    console.log("In rollDataRight")
 
-    this.blockScrollMovement = true;
-    this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
+    // Buffer width variable uses the length of the retrieved data as
+    // it's been adjusted by requestSamplesByIndex()'s overflow protection
+    let bufferWidth = 0
+    // Postpend the buffer's data and remove eegData from the far end
+    let newData = this.buffer.post.data
+    for (let key in newData) {
+      bufferWidth = newData[key].length
+      // Remove prefix and push new data
+      this.eegData[key] = this.eegData[key].slice(bufferWidth)
+      this.eegData[key].push(...newData[key])
+    }
+
+    // Apply a shift to the buffer.loaded.start_i to keep markAreas aligned
+    this.setBufferIndex(this.buffer.loaded.start_i + bufferWidth)
+    // Load data back into electrogram
+    this.electrogram.refreshOptions()
+    
+    // Shift viewport to be visually in the same position
+    this.buffer.dz.start_i = this.buffer.dz.start_i - bufferWidth
+    this.buffer.dz.end_i = this.buffer.dz.end_i - bufferWidth
+    this.updateViewport()
+    // Give control back to the user
+    this.blockScrollMovement = false;
+
+    // Request new data to fill both buffers
+    // Post Buffer
+    this.buffer.post.start_i += bufferWidth
+    this.buffer.post.end_i += bufferWidth
+    this.requestSamplesByIndex(this.buffer.post.start_i, this.buffer.post.end_i)
       .then((eegData) => {
-
-        // Postpend the data and remove prefix
-        let len = 0
-        for (let key in eegData) {
-          // DANGER in len: may shift the viewport size
-          len = eegData[key].length
-          // Remove prefix and push new data
-          this.eegData[key] = this.eegData[key].slice(len)
-          this.eegData[key].push(...eegData[key])
-        }
-
-        // Apply a shift to the bufferStartIndex for further requests
-        this.setBufferIndex(this.bufferStartIndex + len)
-        this.buffer.dz.start_i = this.buffer.dz.start_i - len
-        this.buffer.dz.end_i = this.buffer.dz.end_i - len
-
-        // Refresh options
-        this.electrogram.refreshOptions()
-        this.updateViewport()
-        this.blockScrollMovement = false;
+        this.buffer.post.data = eegData
       })
+    // Pre buffer
+    // WARNING: has pre indices been loaded yet? -> NOPE
+    // this.buffer.pre.start_i += bufferWidth
+    // this.buffer.pre.end_i += bufferWidth
+    // this.requestSamplesByIndex(this.buffer.pre.start_i, this.buffer.pre.end_i)
+    //   .then((eegData) => {
+    //     this.buffer.pre.data = eegData
+    //   })
+    
+    // request1
+    // request2
+
+    // // next chunk indices refers to the indices of the actual data
+    // let nextChunkStart = (this.buffer.loaded.start_i) + this.loadedDataWidth
+    // let nextChunkEnd = nextChunkStart + ((this.numPagesToLoad) * this.samplesInViewport)
+
+    // this.blockScrollMovement = true;
+    // this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
+    //   .then((eegData) => {
+
+    //     // Postpend the data and remove prefix
+    //     let len = 0
+    //     for (let key in eegData) {
+    //       // DANGER in len: may shift the viewport size
+    //       len = eegData[key].length
+    //       // Remove prefix and push new data
+    //       this.eegData[key] = this.eegData[key].slice(len)
+    //       this.eegData[key].push(...eegData[key])
+    //     }
+
+    //     // Apply a shift to the buffer.loaded.start_i for further requests
+    //     this.setBufferIndex(this.buffer.loaded.start_i + len)
+    //     this.buffer.dz.start_i = this.buffer.dz.start_i - len
+    //     this.buffer.dz.end_i = this.buffer.dz.end_i - len
+
+    //     // Refresh options
+    //     this.electrogram.refreshOptions()
+    //     this.updateViewport()
+    //     this.blockScrollMovement = false;
+    //   })
   }
 
 

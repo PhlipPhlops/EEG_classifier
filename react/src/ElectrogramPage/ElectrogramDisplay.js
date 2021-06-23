@@ -97,7 +97,7 @@ class ElectrogramDisplay extends React.Component {
   }
 
   getBufferIndex = () => {
-    return this.dataPaginator.bufferStartIndex
+    return this.dataPaginator.buffer.loaded.start_i
   }
 
   /**
