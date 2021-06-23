@@ -67,6 +67,14 @@ class DataPaginator {
     // when buffer.dz.start_i passes over these values, it'll update
     this.threshold_left = null
     this.threshold_right = null
+    // These toplevel flags act as a gate
+    // there is an event listening listening to datazoom events so
+    // that the data roll code is only executed AFTER a zoom.
+    // These flags are switches as to whether to execute that code
+    this.rollFlags = {
+      right: false,
+      left: false,
+    }
 
 
     // Movement flag to handle rapid pressing of the movment buttons
@@ -88,6 +96,9 @@ class DataPaginator {
     // Updates on threshold of the last chunk in the buffer (or first)
     this.threshold_left = this.samplesInViewport // One page off the left edge
     this.threshold_right = this.loadedDataWidth - this.samplesInViewport // one page off the right edge
+
+    // Register datazoom listeners
+    this.registerRollDataEvents()
   }
 
   setBufferIndex = (newIndex) => {
@@ -124,11 +135,20 @@ class DataPaginator {
       this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
     }
 
+    // Before viewport update, check if rollData should be triggered
+    if (this.buffer.dz.start_i < this.threshold_left
+      && this.buffer.loaded.start_i != 0) {
+      // setting this to true executes this.rollDataLeft()
+      // on the next datazoom (after viewport update)
+      this.rollFlags.left = true
+    }
+
     this.updateViewport()
-    this.checkBufferLeft()
+
+
     // this.updateBufferLeft(changeRate)
     // // Legacy
-    this.updateDataBuffer()
+    // this.updateDataBuffer()
   }
 
   moveRight = (isCtrlPressed) => {
@@ -156,24 +176,47 @@ class DataPaginator {
     console.log(this.threshold_left)
     console.log(this.threshold_right)
 
+    if (this.buffer.dz.end_i > this.threshold_right
+      && this.buffer.loaded.end_i < this.numSamples) {
+      console.log("rollFlag.right set to true")
+      // setting this to true executes this.rollDataRight()
+      // on the next datazoom
+      this.rollFlags.right = true
+    }
+
     this.updateViewport()
-    this.checkBufferRight()
-    // this.updateBufferRight(changeRate)
-    // // Legacy
-    // this.updateDataBuffer()
+  }
+
+  registerRollDataEvents = () => {
+    /**
+     * Called once, this method adds event listenres to the
+     * data zoom even to ensure some methods are only executed
+     * AFTER the datazoom has been completed
+     */
+    let echart = this.echartRef.getEchartsInstance()
+    echart.on('datazoom', () => {
+      console.log("After view dispatch")
+      if (this.rollFlags.left) {
+        this.rollDataLeft()
+      } else if (this.rollFlags.right) {
+        this.rollDataRight()
+      }
+    })
   }
 
   updateViewport = () => {
     // Using the current values stored in xAxisZoom, ensure there's adequate data
     // on either side to buffer any data changes before moving left or right
     let echart = this.echartRef.getEchartsInstance()
-    console.log("In update viewport")
+    console.log("Before view dispatch?")
 
     echart.dispatchAction({
       type: 'dataZoom',
       dataZoomIndex: 0,
       startValue: this.buffer.dz.start_i,
       endValue: this.buffer.dz.end_i,
+    }).then(() => {
+      console.log("Is this real?")
     })
 
     // this.positionBarRef.updatePosition(
@@ -181,89 +224,12 @@ class DataPaginator {
     //   this.samplesInViewport,
     //   this.numSamples,
     // )
-
-    // Drop data buffer here to be used after dispatch
-    this.updateDataBuffer()
-  }
-
-  checkBufferLeft = (changeRate) => {
-    // If buffer is empty, fill it
-
-    // If threshold is passed, roll into it
-    // - Pop data from EEG
-    // - Prepend data from buffer into eegData
-    // - Clear
-
-
-    /////
-    // let chunkEnd = this.buffer.pre.start_i
-    // let chunkStart = chunkEnd - this.samplesInViewport
-    
-    // this.requestSamplesByIndex(chunkStart, chunkEnd)
-    //   .then((data) => {
-    //     // Update buffer indices
-    //     this.buffer.pre.start_i = data.start_i
-    //     // Load data into buffer
-    //     console.log(`Left loaded: [${data.start_i}, ${data.end_i}]`)
-    //   })
-  }
-
-  checkBufferRight = (changeRate) => {
-    // If buffer is empty, fill it
-
-    // If threshold is passed, roll into it
-
-    
-    ////
-    // let chunkStart = this.buffer.post.end_i
-    // let chunkEnd = chunkStart + this.samplesInViewport
-
-    // this.requestSamplesByIndex(chunkStart, chunkEnd)
-    //   .then((data) => {
-    //     // Update buffer indices
-    //     this.buffer.post.end_i = data.end_i
-    //     // Load data into buffer
-    //     console.log(`Right loaded: [${data.start_i}, ${data.end_i}]`)
-    //   })
-  }
-
-  updateDataBuffer = () => {
-    /**
-     * Called on every move
-     * 
-     * By the time this method is called, the viewport has been
-     * updated (buffer.dz.start_i, and buffer.dz.end_i have been modified and dispatched)
-     * 
-     * Nextstep is to query for new data and add it to the databuffer
-     * 
-     * If a threshhold has been passed, rollData into the buffer,
-     * chop off the old data and clear the buffer
-     * Threshold defined as:
-     *  if ONE more ctrl->move would attempt to view unloaded data
-     *  thus if theres any less (strictly) than two viewports, update
-     * 
-     * If another move is requested before dataRoll is completed,
-     * block movement and showLoading until it's done.
-     */
-
-    /// LEGACY
-    if (this.buffer.dz.start_i < this.threshold_left) {
-      if (this.buffer.loaded.start_i == 0) {
-        // Check to avoid rolling data into unloadable terrirory
-        return
-      }
-      this.rollDataLeft()
-    } else if (this.buffer.dz.end_i > this.threshold_right) {
-      if (this.buffer.loaded.end_i >= this.numSamples) {
-        // Check to avoid rolling data into unloadable terrirory
-        return
-      }
-      this.rollDataRight()
-    }
   }
 
   rollDataLeft = () => {
-    console.log("in rollDataLeft")
+    console.log("in rollDataLeft, flag is cleared")
+    // Clear flag immediately to avoid double method calling
+    this.rollFlags.left = false
 
     // next chunk indices refers to the indices of the actual data
     // let prevChunkEnd = this.buffer.loaded.start_i
@@ -297,7 +263,9 @@ class DataPaginator {
 
   rollDataRight = () => {
     // Snaps data from buffer into the live eegData, removing far data
-    console.log("In rollDataRight")
+    console.log("In rollDataRight, flag is cleared")
+    // Clear flag as soon as data roll is initted
+    this.rollFlags.right = false
 
     // Buffer width variable uses the length of the retrieved data as
     // it's been adjusted by requestSamplesByIndex()'s overflow protection
@@ -310,16 +278,19 @@ class DataPaginator {
       this.eegData[key] = this.eegData[key].slice(bufferWidth)
       this.eegData[key].push(...newData[key])
     }
+    console.log("-- done pushing data")
 
     // Apply a shift to the buffer.loaded.start_i to keep markAreas aligned
     this.setBufferIndex(this.buffer.loaded.start_i + bufferWidth)
     // Load data back into electrogram
     this.electrogram.refreshOptions()
+    console.log("-- done refreshing options")
     
     // Shift viewport to be visually in the same position
     this.buffer.dz.start_i = this.buffer.dz.start_i - bufferWidth
     this.buffer.dz.end_i = this.buffer.dz.end_i - bufferWidth
     this.updateViewport()
+    console.log("-- done updating viewport after options reset")
     // Give control back to the user
     this.blockScrollMovement = false;
 
@@ -330,7 +301,9 @@ class DataPaginator {
     this.requestSamplesByIndex(this.buffer.post.start_i, this.buffer.post.end_i)
       .then((eegData) => {
         this.buffer.post.data = eegData
+        console.log("---- done downloading data")
       })
+
     // Pre buffer
     // WARNING: has pre indices been loaded yet? -> NOPE
     // this.buffer.pre.start_i += bufferWidth
