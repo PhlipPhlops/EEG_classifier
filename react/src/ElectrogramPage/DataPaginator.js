@@ -24,15 +24,18 @@ class DataPaginator {
     this.sampleRate = null // samples per second
     this.secsInViewport = 10
     this.samplesInViewport = null
+    
+    // Total number of pages to keep loaded into EEG Vizualizer
+    this.numPagesToLoad = 4
+    this.loadedDataWidth = null // Equates to numPages * samplesInViewport
+
+    // These vars marked for deletion
     // Number of viewports worth of data on either side of the viewport
     // to preload
-    this.numPagesToPreload = 3
-    // These vars marked for deletion
-    this.totalBufferSize = null
-    
     // Buffer start index is tied into markAreas which will save to file
     // Modified by electrogram
     this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
+    
     
     // Data buffer
     this.buffer = {
@@ -40,15 +43,20 @@ class DataPaginator {
         start_i: null,
         end_i: null,
         data: {},
+        // Pre buffer data width should be one viewport width
+        // or less if squished to the left side of totalData
       },
       post: { // unloaded eeg data that belongs to later indices
         start_i: null,
         end_i: null,
         data: {},
+        // Pre buffer data width should be one viewport width
+        // or less if squished to the right side of totalData
       },
       loaded: {
         start_i: null,
         end_i: null,
+        // eegData is its own variable
       },
       dz: { // datazoom values
         start_i: 0,
@@ -75,12 +83,12 @@ class DataPaginator {
     this.numSamples = store.getState().numSamples
     this.samplesInViewport = Math.ceil(this.secsInViewport * this.sampleRate)
 
-    this.totalBufferSize = this.samplesInViewport * (this.numPagesToPreload * 2 + 1)
+    this.loadedDataWidth = this.samplesInViewport * (this.numPagesToLoad * 2 + 1)
     this.buffer.dz.end_i = this.buffer.dz.start_i + this.samplesInViewport
     
     // Updates on threshold of the last chunk in the buffer (or first)
     this.threshold_left = 2 * this.samplesInViewport
-    this.threshold_right = (this.numPagesToPreload * 2 - 1) * this.samplesInViewport
+    this.threshold_right = (this.numPagesToLoad * 2 - 1) * this.samplesInViewport
   }
 
   setBufferIndex = (newIndex) => {
@@ -117,8 +125,9 @@ class DataPaginator {
     }
 
     this.updateViewport()
-    this.updateBufferLeft(changeRate)
-    // Legacy
+    this.checkBufferLeft()
+    // this.updateBufferLeft(changeRate)
+    // // Legacy
     this.updateDataBuffer()
   }
 
@@ -144,8 +153,9 @@ class DataPaginator {
     }
 
     this.updateViewport()
-    this.updateBufferRight(changeRate)
-    // Legacy
+    this.checkBufferRight()
+    // this.updateBufferRight(changeRate)
+    // // Legacy
     this.updateDataBuffer()
   }
 
@@ -168,30 +178,45 @@ class DataPaginator {
     // )
   }
 
-  updateBufferLeft = (changeRate) => {
-    let chunkEnd = this.buffer.pre.start_i
-    let chunkStart = chunkEnd - changeRate
+  checkBufferLeft = (changeRate) => {
+    // If buffer is empty, fill it
+
+    // If threshold is passed, roll into it
+    // - Pop data from EEG
+    // - Prepend data from buffer into eegData
+    // - Clear
+
+
+    /////
+    // let chunkEnd = this.buffer.pre.start_i
+    // let chunkStart = chunkEnd - this.samplesInViewport
     
-    this.requestSamplesByIndex(chunkStart, chunkEnd)
-      .then((data) => {
-        // Update buffer indices
-        this.buffer.pre.start_i = data.start_i
-        // Load data into buffer
-        console.log(`Left loaded: [${data.start_i}, ${data.end_i}]`)
-      })
+    // this.requestSamplesByIndex(chunkStart, chunkEnd)
+    //   .then((data) => {
+    //     // Update buffer indices
+    //     this.buffer.pre.start_i = data.start_i
+    //     // Load data into buffer
+    //     console.log(`Left loaded: [${data.start_i}, ${data.end_i}]`)
+    //   })
   }
 
-  updateBufferRight = (changeRate) => {
-    let chunkStart = this.buffer.post.end_i
-    let chunkEnd = chunkStart + changeRate
+  checkBufferRight = (changeRate) => {
+    // If buffer is empty, fill it
 
-    this.requestSamplesByIndex(chunkStart, chunkEnd)
-      .then((data) => {
-        // Update buffer indices
-        this.buffer.post.end_i = data.end_i
-        // Load data into buffer
-        console.log(`Right loaded: [${data.start_i}, ${data.end_i}]`)
-      })
+    // If threshold is passed, roll into it
+
+    
+    ////
+    // let chunkStart = this.buffer.post.end_i
+    // let chunkEnd = chunkStart + this.samplesInViewport
+
+    // this.requestSamplesByIndex(chunkStart, chunkEnd)
+    //   .then((data) => {
+    //     // Update buffer indices
+    //     this.buffer.post.end_i = data.end_i
+    //     // Load data into buffer
+    //     console.log(`Right loaded: [${data.start_i}, ${data.end_i}]`)
+    //   })
   }
 
   updateDataBuffer = () => {
@@ -220,7 +245,7 @@ class DataPaginator {
       }
       this.rollDataLeft()
     } else if (this.buffer.dz.start_i >= this.threshold_right) {
-      if (this.bufferStartIndex + this.totalBufferSize >= this.numSamples) {
+      if (this.bufferStartIndex + this.loadedDataWidth >= this.numSamples) {
         return
       }
       this.rollDataRight()
@@ -230,13 +255,11 @@ class DataPaginator {
   rollDataLeft = () => {
     // next chunk indices refers to the indices of the actual data
     let prevChunkEnd = this.bufferStartIndex
-    let prevChunkStart = (this.bufferStartIndex) - (this.numPagesToPreload * this.samplesInViewport)
+    let prevChunkStart = (this.bufferStartIndex) - (this.numPagesToLoad * this.samplesInViewport)
 
     this.blockScrollMovement = true
     this.requestSamplesByIndex(prevChunkStart, prevChunkEnd)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
+      .then((eegData) => {
 
         // Postpend the data and remove prefix
         let len = 0
@@ -262,14 +285,12 @@ class DataPaginator {
 
   rollDataRight = () => {
     // next chunk indices refers to the indices of the actual data
-    let nextChunkStart = (this.bufferStartIndex) + this.totalBufferSize
-    let nextChunkEnd = nextChunkStart + ((this.numPagesToPreload) * this.samplesInViewport)
+    let nextChunkStart = (this.bufferStartIndex) + this.loadedDataWidth
+    let nextChunkEnd = nextChunkStart + ((this.numPagesToLoad) * this.samplesInViewport)
 
     this.blockScrollMovement = true;
     this.requestSamplesByIndex(nextChunkStart, nextChunkEnd)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
+      .then((eegData) => {
 
         // Postpend the data and remove prefix
         let len = 0
@@ -299,52 +320,58 @@ class DataPaginator {
    * THIS COLLECTION OF METHODS HANDLES NETWORK REQUESTS AND DATA ORGANIZATION
    */
   initialDataLoad = () => {
-    this.requestSamplesByIndex(0, this.totalBufferSize)
-      .then((data) => {
-        let chunk = JSON.parse(data.eeg_chunk)
-        let eegData = this.organizeEegData(chunk)
+    this.requestSamplesByIndex(0, this.loadedDataWidth)
+      .then((eegData) => {
         this.pushDataToSeries(eegData)
           .then(() => {
-
+            // Intiailize Buffer Meta Data
             this.buffer.loaded = {
               start_i: 0,
-              end_i: this.totalBufferSize
+              end_i: this.loadedDataWidth
             }
             this.buffer.pre = {
               start_i: 0,
               end_i: 0,
               data: {}
             }
-            this.buffer.post = {
-              start_i: this.totalBufferSize,
-              end_i: this.totalBufferSize,
-              data: {}
-            }
 
+            // Display the electrogram and zoom
             this.electrogram.setState({})
             this.updateViewport()
 
+            // Load up annotations
             netface.requestAnnotations()
               .then(this.networkAnnotationsToMarkArea)
+
+            // Load up post page buffer
+            this.buffer.post = {
+              start_i: this.loadedDataWidth,
+              end_i: this.loadedDataWidth + this.samplesInViewport,
+              data: {}
+            }
+            let post = this.buffer.post
+            this.requestSamplesByIndex(post.start_i, post.end_i)
+              .then((data) => {
+                this.buffer.post.data = data
+              })
           })
       })
   }
 
   requestSamplesByIndex = (i_start, i_end) => {
     // Returns a promise representing a JSON of the data
-    if (i_start < 0) {
-      i_start = 0
+    if (i_start < 0 || i_end < 0) {
+      throw Error('Cannot request data of index < 0')
     }
-    if (i_end > this.numSamples) {
-      i_end = this.numSamples
+    if (i_end > this.numSamples || i_start > this.numSamples) {
+      throw Error('Cannot request data of index > numSamples')
     }
     console.log(`Requesting samples [ ${i_start} : ${i_end}] `)
     return netface.requestSamplesByIndex(i_start, i_end)
       .then((data) => data.json())
       .then((data) => {
-        data.start_i = i_start
-        data.end_i = i_end
-        return data
+        let chunk = JSON.parse(data.eeg_chunk)
+        return this.organizeEegData(chunk)
       })
   }
 
@@ -352,6 +379,8 @@ class DataPaginator {
     /*
       This method expects data formatted as is returned  from
       organizeEegData and pushes it to the eegData object
+
+      Legacy method only used in the initialDataLoad for now
      */
     return new Promise((resolve, reject) => {
       for (let key in data) {
