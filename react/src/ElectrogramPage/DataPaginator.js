@@ -194,14 +194,21 @@ class DataPaginator {
      * AFTER the datazoom has been completed
      */
     let echart = this.echartRef.getEchartsInstance()
-    echart.on('datazoom', () => {
-      console.log("After view dispatch")
+    echart.on('finished', () => {
+      // Hypothetically this is only called after
+      // actions have been completed; in this case, a datazoom
       if (this.rollFlags.left) {
         this.rollDataLeft()
       } else if (this.rollFlags.right) {
         this.rollDataRight()
       }
     })
+    // echart.on('rendered', () => {
+    //   console.log("after render")
+    // })
+    // echart.on('finished', () => {
+    //   console.log('after finished')
+    // })
   }
 
   updateViewport = () => {
@@ -215,8 +222,6 @@ class DataPaginator {
       dataZoomIndex: 0,
       startValue: this.buffer.dz.start_i,
       endValue: this.buffer.dz.end_i,
-    }).then(() => {
-      console.log("Is this real?")
     })
 
     // this.positionBarRef.updatePosition(
