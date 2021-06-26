@@ -172,9 +172,7 @@ class DataPaginator {
       this.buffer.dz.start_i = this.buffer.dz.end_i - this.samplesInViewport
     }
 
-    console.log(this.buffer)
-    console.log(this.threshold_left)
-    console.log(this.threshold_right)
+    this.updateViewport()
 
     if (this.buffer.dz.end_i > this.threshold_right
       && this.buffer.loaded.end_i < this.numSamples) {
@@ -183,8 +181,6 @@ class DataPaginator {
       // on the next datazoom
       this.rollFlags.right = true
     }
-
-    this.updateViewport()
   }
 
   registerRollDataEvents = () => {
