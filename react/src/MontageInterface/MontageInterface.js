@@ -10,14 +10,29 @@ class MontageInterface extends React.Component {
       return null;
     }
     return (
-      <CenterChild>
-        <Logo src={noto_brain} />
-      </CenterChild>
+      <FloatingParent>
+        <CenterChild>
+          <Logo src={noto_brain} />
+        </CenterChild>
+      </FloatingParent>
     )
   }
 }
 
 export default MontageInterface;
+
+const FloatingParent = styled.div`
+  width: 50%;
+  height: 70%;
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 3px 5px 3px 5px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.24);
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`
 
 const CenterChild = styled.div`
   display: flex;
