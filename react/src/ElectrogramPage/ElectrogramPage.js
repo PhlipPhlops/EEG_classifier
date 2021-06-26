@@ -5,10 +5,24 @@ import ElectrogramDisplay from './ElectrogramDisplay';
 import EDSettingsBar from './EDSettingsBar';
 import UploadField from '../components/UploadField';
 import FeedbackButton from '../components/FeedbackButton';
+import MontageInterface from '../MontageInterface/MontageInterface';
 
 import LogoBar from '../components/LogoBar';
 
 class ElectrogramPage extends React.Component {
+
+  constructor(props) {
+    super(props)
+    this.state = {
+      showMontageModal: false
+    }
+  }
+
+  toggleMontageModal = () => {
+    this.setState({
+      showMontageModal: !this.state.showMontageModal
+    })
+  }
   
   render() {
     return (
@@ -16,11 +30,12 @@ class ElectrogramPage extends React.Component {
         <LogoBar />
         <EDSettingsBar />
         <ElectrogramDisplay />
+        <MontageInterface show={this.state.showMontageModal} />
         <div style={{pointerEvents: 'none'}} />
         <EDSettingsBar />
         <UploadFieldParent>
           <div />
-          <div /> {/** FeedbackButton goes here */}
+          <button onClick={this.toggleMontageModal}>Edit Montage</button>
           <div />
           <UploadField />
         </UploadFieldParent>
