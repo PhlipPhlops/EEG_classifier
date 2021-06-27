@@ -52,7 +52,11 @@ export class Start extends React.Component {
       arrows: true,
       autoplay: true,
       autoplaySpeed: 4000,
-      fade: true
+      pauseOnFocus: false,
+      pauseOnDotsHover: false,
+      pauseOnHover: false,
+      fade: true,
+      centerMode: true,
     };
 
     if (inHome) {
@@ -72,6 +76,7 @@ export class Start extends React.Component {
         <br></br>
       <div>
         {/* <h2> Single Item</h2> */}
+        {/* <slides> */}
         <Slider {...settings}>
           <div>
             <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
@@ -92,6 +97,7 @@ export class Start extends React.Component {
             <h3>6</h3>
           </div> */}
         </Slider>
+        {/* </slides> */}
       </div>
 
 
