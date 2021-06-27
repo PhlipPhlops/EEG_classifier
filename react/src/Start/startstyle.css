@@ -2,10 +2,10 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    /* align-items: center; */
+    position: relative;
 }
 
-.startbase-container .startheader-container {
+/* .startbase-container .startheader-container {
     width: 100%;
     height: 250px;
     background-image: linear-gradient(#3ce3dd, #0a3ecc);
@@ -15,6 +15,61 @@
     text-justify: auto;
     box-shadow: 0px 0px 12px 2px rgba(15, 15, 15, 0.2);
 }
+.startbase-container .startheader-container .half {
+    width: 50%;
+} */
+
+
+.startheader {
+    overflow: hidden;
+    background-image: url("../static/gradient.png");
+    background-size:cover;
+    padding: 20px 10px;
+    font-weight: 600;
+    font-style: italic;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    box-shadow: 0px 0px 12px 2px rgba(15, 15, 15, 0.2);
+  } 
+.startheader a {
+    float: left;
+    color: #f1f1f1;
+    text-align: center;
+    padding: 12px;
+    text-decoration: none;
+    font-size: 22px; 
+    line-height: 25px;
+    border-radius: 4px;
+    
+}
+.startheader img {
+    width: 15em;
+    float: left;
+    margin-left: 2em;
+}
+.startheader a img:hover {
+    background-color: transparent;
+    background: transparent; /* TODO: jaisdjasd */
+}
+.startheader a.logo {
+    font-size: 25px;
+    font-weight: bold;
+    width: 30em;
+}
+.startheader a:hover {
+    background-color: #3ce3b1;
+    /* background-blend-mode: multiply; */
+    /* opacity: 10%; */
+    /* color: black; */
+}
+.startheader a.active {
+    background-color: #3ce3dd;
+    color: white;
+}
+.startheader-right {
+    float: right;
+}
+ 
+/* 
 .startbase-container .startheader-container .startheader {
     font-size: 40px;
     font-weight: 400;
@@ -25,7 +80,7 @@
 }
 .startbase-container .startheader-container .startheaderimage {
     align-items: center;
-    width: 30em;
+    width: 25%;
 }
 .startbase-container .startheader-container .startheaderimage img {
     margin-left: 5em;
@@ -39,14 +94,12 @@
 }
 .startbase-container .startcontent .startimage {
     width: 60em;
-    /* float: left; */
 
 }
 .startbase-container .startcontent .startimage img {
     width: 100%;
     height: 100%;
-    /* float: left; */
-    /* ruby-align: left; */
+
 }
 
 .startbase-container .startcontent .startcontenttext {
@@ -55,7 +108,6 @@
     color: black;
     font-style: italic;
     bottom: 0px;
-    /* text-align: right; */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 .startbase-container .startcontent .startform {
@@ -100,4 +152,4 @@
     margin-right: 2em;
     text-align: right;
     
-}
+} */

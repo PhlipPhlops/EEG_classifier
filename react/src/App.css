@@ -36,7 +36,7 @@
     height: 90%;
     /* background-color: #3498db; */
     /* background-image: linear-gradient(#0a3ecc, #3ce3dd); */
-    background-image: linear-gradient(#3ce3dd, #0a3ecc);
+    background-image: url(./static/gradientflipped.png);
     width: 100%;
     position: absolute;
     right: -34%;
@@ -71,14 +71,14 @@
     font-size: 20px;
     padding: 6px 20px;
     border: 0;
-    background-color: #005acf;
+    background-color: #3ce3dd;
     color: #fff;
     border-radius: 3px;
     transition: all 250ms ease-in-out;
     cursor: pointer;
 }
 .btn:hover {
-    background-color: #0093d2;
+    background-color: #3ce3b1;
 }
 .btn:focus {
     outline: none;

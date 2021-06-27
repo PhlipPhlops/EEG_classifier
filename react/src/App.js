@@ -5,10 +5,7 @@ import Login from './Register+Login/Login';
 import Landing from './Landing/Landing';
 import Start from './Start/Start';
 import ElectrogramPage from "./ElectrogramPage/ElectrogramPage";
-
-{/* <Router>
-    <Route path="./Landing/Landing" component={Landing}/>
-</Router> */}
+import RegisterandLogin from "./Register+Login/RegisterandLogin";
 
 class App extends React.Component {
     constructor(props) {
@@ -23,10 +20,6 @@ class App extends React.Component {
         };
     }
 
-    // componentDidMount() {
-    //     this.rightSide.classList.add("right");
-    // }
-
     loginHandler() {
         this.setState({
             buttonClicked: true,
@@ -37,8 +30,6 @@ class App extends React.Component {
         this.setState({
             inStart: false,
         })
-        // this.changeState();
-        // this.goToLogin();
     }
 
     changeState() {
@@ -61,7 +52,6 @@ class App extends React.Component {
         const buttonClicked = this.state.buttonClicked;
         const inStart = this.state.inStart;
 
-
         if (buttonClicked) {
             return (
                 <ElectrogramPage/>
@@ -71,45 +61,11 @@ class App extends React.Component {
                 <Start containerRef={ref=> (this.current = ref)} handler = {this.startHandler}/>
             );
         } else {
-            // this.changeState();
             return (
-                // <Login handler = {this.handler}> </Login>
-                    <div className = "App">
-                    <div className = "login">
-                        <div className = "container" ref = {ref => (this.container = ref)}>
-                            {isLoginActive && (
-                                <Login containerRef={ref => (this.current = ref)} handler={this.loginHandler}/>
-                            )}
-                            {!isLoginActive && (
-                                <Register containerRef={ref => (this.current = ref)} handler={this.loginHandler} />
-                            )}                 
-                        </div>
-                        <RightSide 
-                            current = {current}
-                            currentActive = {currentActive}
-                            containerRef = {ref => (this.rightSide = ref)}
-                            onClick = {this.changeState.bind(this)}
-                        />
-                    </div>
-                </div>
+                <RegisterandLogin containerRef={ref=> (this.current = ref)} handler={this.loginHandler}/>
             );
-            // this.changeState();
         }
     }
-}
-
-const RightSide = props => {
-    return (
-        <div
-            className = "right-side"
-            ref = {props.containerRef}
-            onClick = {props.onClick}
-        >
-            <div className = "inner-container">
-                <div className = "text">{props.current}</div>
-            </div>
-        </div>
-    )
 }
 
 export default App;
