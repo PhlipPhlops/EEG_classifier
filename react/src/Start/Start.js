@@ -76,21 +76,20 @@ export class Start extends React.Component {
         </div>
 
         <br></br>
-      <div>
+      <div className="slides">
         {/* <h2> Single Item</h2> */}
-        {/* <slides> */}
         <Slider {...settings}>
           <div>
-            <img src={slide1} width="90%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
+            <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
           </div>
           <div>
-            <img src={slide2} width="90%"/>
+            <img src={slide2} width="100%"/>
           </div>
           <div>
-            <img src={slide3} width="90%"/>
+            <img src={slide3} width="100%"/>
           </div>
           <div>
-            <img src={slide4} width="90%"/>
+            <img src={slide4} width="100%"/>
           </div>
           {/* <div>
             <h3>5</h3>
@@ -99,7 +98,6 @@ export class Start extends React.Component {
             <h3>6</h3>
           </div> */}
         </Slider>
-        {/* </slides> */}
       </div>
 
 
