@@ -1,8 +1,22 @@
 import React from 'react';
 import styled from 'styled-components';
 
+// Writing everythig in one file for now, don't want to think
+// about imports just yet
+
+let montageList = [
+
+]
+
+let loadLabel = (label) => {
+  console.log("global, label")
+}
 
 class MontageInterface extends React.Component {
+
+  loadLabel = (label) => {
+    console.log("MI:", label)
+  }
 
   render() {
     if (!this.props.show) {
@@ -10,13 +24,31 @@ class MontageInterface extends React.Component {
     }
     return (
       <FloatingParent>
-        <ButtonField />
+        <ButtonField loadLabel={this.loadLabel} />
       </FloatingParent>
     )
   }
 }
 
 export default MontageInterface;
+
+const FloatingParent = styled.div`
+  width: 50%;
+  height: 70%;
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 3px 5px 3px 5px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.24);
+
+  padding: 15px;
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`
+
+
+
 
 class ButtonField extends React.Component {
   
@@ -86,13 +118,21 @@ class ButtonField extends React.Component {
   }
 }
 
+const ButtonGrid = styled.div`
+  display: grid;
+  grid-row-gap: 5px;
+  grid-column-gap: 5px;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+`
+
 class ElectrodeButton extends React.Component {
   constructor(props) {
     super(props)
   }
 
   loadLabel = () => {
-    console.log(this.props.label)
+    loadLabel(this.props.label)
   }
 
   render() {
@@ -102,29 +142,6 @@ class ElectrodeButton extends React.Component {
   }
 }
 
-const FloatingParent = styled.div`
-  width: 50%;
-  height: 70%;
-  background-color: white;
-  border-radius: 15px;
-  box-shadow: 3px 5px 3px 5px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.24);
-
-  padding: 15px;
-
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-`
-
-const ButtonGrid = styled.div`
-  display: grid;
-  grid-row-gap: 5px;
-  grid-column-gap: 5px;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-`
-
 const StyledButton = styled.button`
   background-color: cyan;
   border: none;
@@ -132,3 +149,14 @@ const StyledButton = styled.button`
   padding: 10px;
   box-shadow: 3px 5px 3px 5px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.24);
 `
+
+
+
+class MontageList extends React.Component {
+  constructor(props) {
+    super(props)
+    
+    // A list of lists size 2
+    this.state.montage = []
+  }
+}
