@@ -45,7 +45,7 @@ export class Start extends React.Component {
 
     const settings = {
       dots: true,
-      infinite: true,
+      // infinite: true,
       speed: 500,
       slidesToShow: 1,
       slidesToScroll: 1,
@@ -56,7 +56,9 @@ export class Start extends React.Component {
       pauseOnDotsHover: false,
       pauseOnHover: false,
       fade: true,
-      centerMode: true,
+      // centerMode: true,
+      adaptiveHeight: true,
+      // variableWidth: true,
     };
 
     if (inHome) {
@@ -79,16 +81,16 @@ export class Start extends React.Component {
         {/* <slides> */}
         <Slider {...settings}>
           <div>
-            <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
+            <img src={slide1} width="90%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
           </div>
           <div>
-            <img src={slide2} width="100%"/>
+            <img src={slide2} width="90%"/>
           </div>
           <div>
-            <img src={slide3} width="100%"/>
+            <img src={slide3} width="90%"/>
           </div>
           <div>
-            <img src={slide4} width="100%"/>
+            <img src={slide4} width="90%"/>
           </div>
           {/* <div>
             <h3>5</h3>
