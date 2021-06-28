@@ -2,6 +2,11 @@ import React from 'react'
 import styled from 'styled-components';
 
 export class ButtonField extends React.Component {
+
+  constructor(props) {
+    super(props)
+    this.onClick = this.props.onButtonClicked
+  }
   
   render() {
     return (
@@ -9,45 +14,45 @@ export class ButtonField extends React.Component {
         {/* Row1 */}
         <div />
         <div />
-        <ElectrodeButton label="FP1" />
+        <ElectrodeButton onClick={this.onClick} label="FP1" />
         <div />
-        <ElectrodeButton label="FP2" />
+        <ElectrodeButton onClick={this.onClick} label="FP2" />
         <div />
         <div />
 
         {/* Row2 */}
-        <ElectrodeButton label="T1" />
-        <ElectrodeButton label="F7" />
-        <ElectrodeButton label="F3" />
-        <ElectrodeButton label="FZ" />
-        <ElectrodeButton label="F4" />
-        <ElectrodeButton label="F8" />
-        <ElectrodeButton label="T2" />
+        <ElectrodeButton onClick={this.onClick} label="T1" />
+        <ElectrodeButton onClick={this.onClick} label="F7" />
+        <ElectrodeButton onClick={this.onClick} label="F3" />
+        <ElectrodeButton onClick={this.onClick} label="FZ" />
+        <ElectrodeButton onClick={this.onClick} label="F4" />
+        <ElectrodeButton onClick={this.onClick} label="F8" />
+        <ElectrodeButton onClick={this.onClick} label="T2" />
 
         {/* Row3 */}
-        <ElectrodeButton label="A1" />
-        <ElectrodeButton label="T3" />
-        <ElectrodeButton label="C3" />
-        <ElectrodeButton label="CZ" />
-        <ElectrodeButton label="C4" />
-        <ElectrodeButton label="T4" />
-        <ElectrodeButton label="A2" />
+        <ElectrodeButton onClick={this.onClick} label="A1" />
+        <ElectrodeButton onClick={this.onClick} label="T3" />
+        <ElectrodeButton onClick={this.onClick} label="C3" />
+        <ElectrodeButton onClick={this.onClick} label="CZ" />
+        <ElectrodeButton onClick={this.onClick} label="C4" />
+        <ElectrodeButton onClick={this.onClick} label="T4" />
+        <ElectrodeButton onClick={this.onClick} label="A2" />
 
         {/* Row 4 */}
         <div />
-        <ElectrodeButton label="T5" />
-        <ElectrodeButton label="P3" />
-        <ElectrodeButton label="PZ" />
-        <ElectrodeButton label="P4" />
-        <ElectrodeButton label="T6" />
+        <ElectrodeButton onClick={this.onClick} label="T5" />
+        <ElectrodeButton onClick={this.onClick} label="P3" />
+        <ElectrodeButton onClick={this.onClick} label="PZ" />
+        <ElectrodeButton onClick={this.onClick} label="P4" />
+        <ElectrodeButton onClick={this.onClick} label="T6" />
         <div />
 
         {/* Row5 */}
         <div />
         <div />
-        <ElectrodeButton label="O1" />
+        <ElectrodeButton onClick={this.onClick} label="O1" />
         <div />
-        <ElectrodeButton label="O2" />
+        <ElectrodeButton onClick={this.onClick} label="O2" />
         <div />
         <div />
 
@@ -61,8 +66,13 @@ export class ButtonField extends React.Component {
         <div />
 
         {/* Row7 */}
-        <ElectrodeButton label="X1" />
-        <ElectrodeButton label="X2" />
+        <ElectrodeButton onClick={this.onClick} label="X1" />
+        <ElectrodeButton onClick={this.onClick} label="X2" />
+        <div />
+        <div />
+        <div />
+        <div />
+        <ElectrodeButton onClick={this.onClick} label="None" />
 
       </ButtonGrid>
     )
@@ -79,12 +89,13 @@ const ButtonGrid = styled.div`
 
 
 class ElectrodeButton extends React.Component {
-  constructor(props) {
-    super(props)
-  }
 
   loadLabel = () => {
-    // loadLabel(this.props.label)
+    let label = this.props.label
+    if (label == 'None') {
+      label = ''
+    }
+    this.props.onClick(label)
   }
 
   render() {
