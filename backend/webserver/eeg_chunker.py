@@ -1,9 +1,12 @@
 import os
 import time
 import pandas as pd
+import pickle
 from .app_config import cache
 import mne
 from ..mne_reader.fif_reader import  FIFReader
+
+from .app_config import logger
 
 
 class EegChunker:
@@ -47,7 +50,97 @@ class EegChunker:
         """
         df = self.retrieve_from_pickle(sid)
         chunk = df.iloc[:, i_start:i_end]
+        # Apply montage if it exists
+        chunk = self.reorganize_by_montage(sid, chunk)
         return chunk
+
+
+
+    ### MONTAGE METHODS
+    def montage_save_path(self, sid):
+        """Format for the save path"""
+        return '/tmp/'+'MONTAGE_'+sid+'.pkl'
+
+    def store_montage(self, montage, sid):
+        path = self.montage_save_path(sid)
+        with open(path, 'wb') as f:
+            pickle.dump(montage, f)
+
+    def grab_montage(self, sid):
+        path = self.montage_save_path(sid)
+        try:
+            with open(path, 'rb') as f:
+                montage = pickle.load(f)
+            return montage
+        except (FileNotFoundError):
+            return []
+
+    def reorganize_by_montage(self, sid, chunk_df):
+        """Returns chunk reorganized into montage 
+        """
+        # PROBLEM
+        # This method runs a calculation on every network request
+        # This calculation could be run once and cached to save
+        # processing time
+        df = chunk_df
+        montage = self.grab_montage(sid)
+
+        if montage == []:
+            # Montage isn't saved, return original chunk
+            return chunk_df
+
+        # Apply montage
+        # montage = [
+        #     # Bipolar data is [0] - [1]
+        #     ['FP1', 'F3'],
+        #     ['F3','C3'],
+        #     ['C3','P3'],
+        #     ['P3','O1'],
+        #     ['FP1','F7'],
+        #     ['F7','T3'],
+        #     ['T3','T5'],
+        #     ['T5','O1'],
+        #     ['FZ','CZ'],
+        #     ['CZ','PZ'],
+        #     ['FP2','F4'],
+        #     ['F4','C4'],
+        #     ['C4','P4'],
+        #     ['P4','O2'],
+        #     ['FP2','F8'],
+        #     ['F8','T4'],
+        #     ['T4','T6'],
+        #     ['T6','O2'],
+        #     ['T1','A1'],
+        #     ['A1','A2'],
+        #     ['A2','T2'],
+        #     ['T2','T1'],
+        # ]
+
+        kept_columns = []
+        for m in montage:
+            logger.info(m)
+            if len(m) == 0:
+                continue
+
+            if len(m) == 1 or m[1] == '':
+                column_name = f'{m[0]}'
+                kept_columns.append(column_name)
+                continue
+
+            if not m[0] in df.columns or not m[1] in df.columns:
+                continue
+            column_name = f'{m[0]}-{m[1]}'
+            kept_columns.append(column_name)
+            # Create the new bipolar columns
+            df[column_name] = df[m[0]] - df[m[1]]
+        # Keep only bipolar columns
+        df = df[kept_columns]
+        return df
+
+
+
+
+
 
     def chunk_as_data_frame(self, sid, n, N):
         """Returns the nth chunk out of N total chunks

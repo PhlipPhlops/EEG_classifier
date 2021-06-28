@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import netface from '../common/network_interface';
 
 import {ButtonField} from './ButtonField';
 import {ElectrodeList} from './ElectrodeList';
@@ -13,6 +14,28 @@ class MontageInterface extends React.Component {
     // This is a list of lists(max len 2)
     this.state = {
       montageList: [
+        ['FP1', 'F3'],
+        ['F3','C3'],
+        ['C3','P3'],
+        ['P3','O1'],
+        ['FP1','F7'],
+        ['F7','T3'],
+        ['T3','T5'],
+        ['T5','O1'],
+        ['FZ','CZ'],
+        ['CZ','PZ'],
+        ['FP2','F4'],
+        ['F4','C4'],
+        ['C4','P4'],
+        ['P4','O2'],
+        ['FP2','F8'],
+        ['F8','T4'],
+        ['T4','T6'],
+        ['T6','O2'],
+        ['T1','A1'],
+        ['A1','A2'],
+        ['A2','T2'],
+        ['T2','T1'],
         []
       ]
     }
@@ -30,7 +53,6 @@ class MontageInterface extends React.Component {
 
     const BACKSPACE = 8
     if (event.keyCode == BACKSPACE) {
-      console.log("IN BACKSPACE")
       this.delElectrode()
     }
   }
@@ -85,7 +107,8 @@ class MontageInterface extends React.Component {
   }
 
   setMontage = () => {
-    console.log("SET MONTAGE CALLEd")
+    let montageJson = JSON.stringify(this.state.montageList)
+    netface.setMontage(montageJson)
   }
 
   render() {

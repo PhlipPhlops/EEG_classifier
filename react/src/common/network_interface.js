@@ -146,8 +146,19 @@ class ClassifierInterface {
     })
   }
 
+  setMontage(montageJson) {
+    let formData = new FormData();
+    formData.append('sid', this.sid)
+    formData.append('montage_json', montageJson)
 
-
+    return fetch(BASE_URL + '/set-montage', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        "accepts":"application/json",
+      }
+    })
+  }
 
 
 

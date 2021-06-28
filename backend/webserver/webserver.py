@@ -14,6 +14,7 @@ from .eeg_reader import save_agnostic_to_fif
 from ..mne_reader.fif_reader import FIFReader
 
 from threading import Thread
+import json
 
 @socketio.on('connect')
 def establish_connection():
@@ -114,6 +115,23 @@ def retrieve_samples_by_index():
 
     response_data = {
         "eeg_chunk": chunk_df.to_json()
+    }
+    return make_response(jsonify(response_data))
+
+@app.route("/set-montage", methods=["POST"])
+def set_montage():
+    """Tells server to organize chunk data by montage before returning
+    """
+    sid = request.form['sid']
+    montage_list = json.loads(request.form['montage_json'])
+
+    # Store montage to file
+    chunker = EegChunker()
+    chunker.store_montage(montage_list, sid)
+
+    # Return reset signal
+    response_data = {
+        "reset": True
     }
     return make_response(jsonify(response_data))
 
