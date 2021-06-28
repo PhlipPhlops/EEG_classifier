@@ -18,6 +18,23 @@ class MontageInterface extends React.Component {
     }
   }
 
+  componentDidMount() {
+    document.addEventListener("keydown", this.handleKeyDown);
+  }
+
+  handleKeyDown = (event) => {
+    if (!this.props.show) {
+      // Nothing should fire if not showing
+      return
+    }
+
+    const BACKSPACE = 8
+    if (event.keyCode == BACKSPACE) {
+      console.log("IN BACKSPACE")
+      this.delElectrode()
+    }
+  }
+
   addElectrode = (label) => {
     let montage = this.state.montageList
     let lastPair = montage.slice(-1)[0]
