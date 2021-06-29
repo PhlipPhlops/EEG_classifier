@@ -108,6 +108,7 @@ class MontageInterface extends React.Component {
 
   setMontage = () => {
     let montageJson = JSON.stringify(this.state.montageList)
+    console.log("Montage sent")
     netface.setMontage(montageJson)
   }
 

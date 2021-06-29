@@ -65,14 +65,17 @@ class EegChunker:
         path = self.montage_save_path(sid)
         with open(path, 'wb') as f:
             pickle.dump(montage, f)
+        logger.info("montage saved")
 
     def grab_montage(self, sid):
         path = self.montage_save_path(sid)
         try:
             with open(path, 'rb') as f:
                 montage = pickle.load(f)
+            logger.info(f'montage retrieved: {montage}')
             return montage
         except (FileNotFoundError):
+            logger.info(f'Montage not loaded')
             return []
 
     def reorganize_by_montage(self, sid, chunk_df):
@@ -83,40 +86,17 @@ class EegChunker:
         # This calculation could be run once and cached to save
         # processing time
         df = chunk_df
+        logger.info("CHUNK BEFORE")
+        logger.info(chunk_df)
         montage = self.grab_montage(sid)
 
         if montage == []:
             # Montage isn't saved, return original chunk
             return chunk_df
 
-        # Apply montage
-        # montage = [
-        #     # Bipolar data is [0] - [1]
-        #     ['FP1', 'F3'],
-        #     ['F3','C3'],
-        #     ['C3','P3'],
-        #     ['P3','O1'],
-        #     ['FP1','F7'],
-        #     ['F7','T3'],
-        #     ['T3','T5'],
-        #     ['T5','O1'],
-        #     ['FZ','CZ'],
-        #     ['CZ','PZ'],
-        #     ['FP2','F4'],
-        #     ['F4','C4'],
-        #     ['C4','P4'],
-        #     ['P4','O2'],
-        #     ['FP2','F8'],
-        #     ['F8','T4'],
-        #     ['T4','T6'],
-        #     ['T6','O2'],
-        #     ['T1','A1'],
-        #     ['A1','A2'],
-        #     ['A2','T2'],
-        #     ['T2','T1'],
-        # ]
-
         kept_columns = []
+        logger.info(f"Montage: {montage}")
+        logger.info(f"Columns: {df.columns}")
         for m in montage:
             logger.info(m)
             if len(m) == 0:
@@ -127,14 +107,28 @@ class EegChunker:
                 kept_columns.append(column_name)
                 continue
 
+            if len(m) == 2 and m[0] == '':
+                if m[1] != '':
+                    column_name = f'{m[1]}'
+                    kept_columns.append(column_name)
+                    continue
+                else:
+                    continue
+
             if not m[0] in df.columns or not m[1] in df.columns:
+                logger.info("passed")
                 continue
+
             column_name = f'{m[0]}-{m[1]}'
             kept_columns.append(column_name)
             # Create the new bipolar columns
             df[column_name] = df[m[0]] - df[m[1]]
+            logger.info(m)
+            logger.info(df[column_name])
         # Keep only bipolar columns
         df = df[kept_columns]
+        logger.info("CHUNK AFTER")
+        logger.info(df)
         return df
 
 
