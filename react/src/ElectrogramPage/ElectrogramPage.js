@@ -5,6 +5,7 @@ import ElectrogramDisplay from './ElectrogramDisplay';
 import EDSettingsBar from './EDSettingsBar';
 import UploadField from '../components/UploadField';
 import FeedbackButton from '../components/FeedbackButton';
+import TimeAdjuster from '../components/TimeAdjuster';
 
 import LogoBar from '../components/LogoBar';
 
@@ -19,10 +20,11 @@ class ElectrogramPage extends React.Component {
         <div style={{pointerEvents: 'none'}} />
         <EDSettingsBar />
         <UploadFieldParent>
-          <div />
+          <TimeAdjuster />
           <div /> {/** FeedbackButton goes here */}
           <div />
           <UploadField />
+          <div />
         </UploadFieldParent>
       </PageWrapper>
     )
@@ -40,7 +42,7 @@ const PageWrapper = styled.div`
 
 const UploadFieldParent = styled.div`
   display: grid;
-  grid-template-columns: 2vw 20vw 42vw 35vw 1vw;
+  grid-template-columns: 12vw 20vw 32vw 35vw 1vw;
   padding-top: 5px;
   grid-template-rows: 2rem;
 `;
