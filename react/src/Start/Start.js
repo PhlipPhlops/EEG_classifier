@@ -4,6 +4,8 @@ import slide1 from "../static/slide1.png";
 import slide2 from "../static/slide2.png";
 import slide3 from "../static/slide3.png";
 import slide4 from "../static/slide4.png";
+import triangle from "../static/triangle.png";
+
 import text_logo from "../static/text_logo.png";
 import display from "../static/display.png";
 import laptop from "../static/laptop.png"
@@ -11,6 +13,9 @@ import "./startstyle.css";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
+
+import styled from 'styled-components';
+
 
 export class Start extends React.Component {
   constructor(props) {
@@ -59,14 +64,14 @@ export class Start extends React.Component {
     const inAbout = this.state.inAbout;
 
     const settings = {
-      dots: true,
+      dots: false,
       // infinite: true,
       speed: 500,
       slidesToShow: 1,
       slidesToScroll: 1,
-      arrows: true,
+      arrows: false,
       autoplay: true,
-      autoplaySpeed: 4000,
+      autoplaySpeed: 3000,
       pauseOnFocus: false,
       pauseOnDotsHover: false,
       pauseOnHover: false,
@@ -85,17 +90,15 @@ export class Start extends React.Component {
           <div className="slides">
             {/* <h2> Single Item</h2> */}
             <Slider {...settings}>
-              <div>
-                <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
+              {/* <TriangleSlide slideSrc={slide1} /> */}
+              <div className='slideChild'>
+                <img src={slide1} width="70%"/>
               </div>
-              <div>
-                <img src={slide2} width="100%"/>
+              <div className='slideChild'>
+                <img src={slide2} width="70%"/>
               </div>
-              <div>
-                <img src={slide3} width="100%"/>
-              </div>
-              <div>
-                <img src={slide4} width="100%"/>
+              <div className='slideChild'>
+                <img src={slide3} width="70%"/>
               </div>
             </Slider>
           </div>
@@ -112,3 +115,31 @@ export class Start extends React.Component {
 }
 
 export default Start;
+
+class TriangleSlide extends React.Component {
+
+  render() {
+    return (
+      <TriangleParent>
+        <Slide src={this.props.slideSrc} />
+        <Triangle src={triangle} />
+      </TriangleParent>
+    )
+  }
+}
+
+let TriangleParent = styled.div`
+  width: 50%;
+  height: 50%;
+`
+
+let Triangle = styled.img`
+  z-index: 0;
+  width: 100px;
+  height: 100px;
+`
+
+let Slide = styled.img`
+  z-index: 1;
+  width: 1%;
+`
