@@ -918,10 +918,10 @@ class ElectrogramDisplay extends React.Component {
 
       grids.push({
         left: '10%',
-        right: '2%',
+        right: '4%',
         top: '0%',
-        bottom: '0%',
-        show: true,
+        bottom: '4%',
+        show: false,
         containLabel: false, // Help grids aligned by axis
       })
       yAxies.push({
