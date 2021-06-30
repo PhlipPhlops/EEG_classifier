@@ -20,6 +20,13 @@ class App extends React.Component {
         };
     }
 
+    switchToElectrogramPage = () => {
+        this.setState({
+            // Change this variable name
+            buttonClicked: true
+        })
+    }
+
     loginHandler() {
         this.setState({
             buttonClicked: true,
@@ -58,7 +65,7 @@ class App extends React.Component {
             );
         } else if (inStart) {
             return (
-                <Start containerRef={ref=> (this.current = ref)} handler = {this.startHandler}/>
+                <Start containerRef={ref=> (this.current = ref)} onEnterClicked={this.switchToElectrogramPage}/>
             );
         } else {
             return (

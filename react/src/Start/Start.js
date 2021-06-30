@@ -39,6 +39,21 @@ export class Start extends React.Component {
     })
   }
 
+  renderHeader() {
+    return (
+      <div class="startheader">
+        {/* <a href="#default" class="logo"> <img src={text_logo}/> </a> */}
+        <img src={text_logo}/>
+        <div class="startheader-right">
+          <a href="#home" onClick={this.props.onEnterClicked}>Enter Neurogram</a>
+          {/* <a href="#home" onClick={this.homeHandler}>Home</a> */}
+          {/* <a class="active" href="#about" onClick={this.aboutHandler}>About</a>
+          <a href="#signin" onClick={this.props.handler}>Sign in</a> */}
+        </div>
+      </div>
+    )
+  }
+
   render() {
     const inHome = this.state.inHome;
     const inAbout = this.state.inAbout;
@@ -65,56 +80,31 @@ export class Start extends React.Component {
       return (
 
         <div className="startbase-container" ref={this.props.containerRef}>
-        <div class="startheader">
-            {/* <a href="#default" class="logo"> <img src={text_logo}/> </a> */}
-            <img src={text_logo}/>
-            <div class="startheader-right">
-                <a class="active" href="#home">Home</a>
-                <a href="#about" onClick={this.aboutHandler}>About</a>
-                <a href="#signin" onClick={this.props.handler}>Sign in</a>
-            </div>
-        </div>
-
+        {this.renderHeader()}
         <br></br>
-      <div className="slides">
-        {/* <h2> Single Item</h2> */}
-        <Slider {...settings}>
-          <div>
-            <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
+          <div className="slides">
+            {/* <h2> Single Item</h2> */}
+            <Slider {...settings}>
+              <div>
+                <img src={slide1} width="100%"/> {/* TODO: figure out proper width for slides, probably center on page, add arrows? */}
+              </div>
+              <div>
+                <img src={slide2} width="100%"/>
+              </div>
+              <div>
+                <img src={slide3} width="100%"/>
+              </div>
+              <div>
+                <img src={slide4} width="100%"/>
+              </div>
+            </Slider>
           </div>
-          <div>
-            <img src={slide2} width="100%"/>
-          </div>
-          <div>
-            <img src={slide3} width="100%"/>
-          </div>
-          <div>
-            <img src={slide4} width="100%"/>
-          </div>
-          {/* <div>
-            <h3>5</h3>
-          </div>
-          <div>
-            <h3>6</h3>
-          </div> */}
-        </Slider>
-      </div>
-
-
         </div> 
       );
     } else if (inAbout) {
       return (
       <div className="startbase-container" ref={this.props.containerRef}>
-      <div class="startheader">
-          {/* <a href="#default" class="logo"> <img src={text_logo}/> </a> */}
-          <img src={text_logo}/>
-          <div class="startheader-right">
-              <a href="#home" onClick={this.homeHandler}>Home</a>
-              <a class="active" href="#about" onClick={this.aboutHandler}>About</a>
-              <a href="#signin" onClick={this.props.handler}>Sign in</a>
-          </div>
-      </div>
+        {this.renderHeader()}
       </div> 
       );
     }

@@ -12,7 +12,6 @@ class Landing extends React.Component{
 
     return (
       <LandingWrapper className="Landing">
-        {/* <Logo className="logo" src={text_logo}></Logo> */}
         <ElectrogramDisplay />
         <UploadField />
       </LandingWrapper>
