@@ -1,0 +1,185 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.startbase-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* .startbase-container .startheader-container {
+    width: 100%;
+    height: 250px;
+    background-image: linear-gradient(#3ce3dd, #0a3ecc);
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-justify: auto;
+    box-shadow: 0px 0px 12px 2px rgba(15, 15, 15, 0.2);
+}
+.startbase-container .startheader-container .half {
+    width: 50%;
+} */
+
+
+.startheader {
+    overflow: hidden;
+    background-image: url("../static/gradient.png");
+    background-size:cover;
+    padding: 15px 10px;
+    font-weight: 600;
+    font-style: italic;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    /* box-shadow: 0px 0px 12px 2px rgba(15, 15, 15, 0.2); */
+  } 
+.startheader a {
+    float: left;
+    color: #f1f1f1;
+    text-align: center;
+    padding: 12px;
+    text-decoration: none;
+    font-size: large; 
+    line-height: 20px;
+    border-radius: 4px;
+    
+}
+.startheader img {
+    width: 10em;
+    float: left;
+    margin-left: 1%;
+}
+.startheader a img:hover {
+    background-color: transparent;
+    background: transparent; /* TODO: jaisdjasd */
+}
+/* .startheader a.logo {
+    font-size: 25px;
+    font-weight: bold;
+    width: 30em;
+} */
+.startheader a:hover {
+    background-color: #3ce3b1;
+    /* background-blend-mode: multiply; */
+    /* opacity: 10%; */
+    /* color: black; */
+}
+.startheader a.active {
+    background-color: #3ce3dd;
+    color: white;
+}
+.startheader-right {
+    float: right;
+}
+.slides {
+    /* align-items: center; */
+    /* align-self: center; */
+    /* margin: 30%; */
+    /* width: 90%; */
+    /* float: right; */
+    margin-left: 10%;
+    /* right: 0px; */
+    /* width: 100%; */
+}
+
+.slick-prev {
+    left: 3% !important;
+    z-index: 1;
+  }
+  .slick-next {
+    right: 3% !important;
+    z-index: 1;
+  }
+
+  .slick-prev:before,
+  .slick-next:before {
+    color: #b6b6b6 !important;
+  }
+ 
+/* 
+.startbase-container .startheader-container .startheader {
+    font-size: 40px;
+    font-weight: 400;
+    color: white;
+    font-style: italic;
+    bottom: 0px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+.startbase-container .startheader-container .startheaderimage {
+    align-items: center;
+    width: 25%;
+}
+.startbase-container .startheader-container .startheaderimage img {
+    margin-left: 5em;
+    margin-top: 3em;
+    width: 100%;
+    height: 100%;
+}
+.startbase-container .startcontent {
+    display: flex;
+    flex-direction: column;
+}
+.startbase-container .startcontent .startimage {
+    width: 60em;
+
+}
+.startbase-container .startcontent .startimage img {
+    width: 100%;
+    height: 100%;
+
+}
+
+.startbase-container .startcontent .startcontenttext {
+    font-size: 40px;
+    font-weight: 400;
+    color: black;
+    font-style: italic;
+    bottom: 0px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+.startbase-container .startcontent .startform {
+    margin-top: 2em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.startbase-container .startcontent .startform .startform-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: fit-content;
+}
+
+.startbase-container .startcontent .startform .startform-group label {
+    font-size: 20px;
+}
+
+.startbase-container .startcontent .startform .startform-group input {
+    margin-top: 6px;
+    min-width: 18em;
+    height: 37px;
+    padding: 0px 10px;
+    font-size: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background-color: #f3f3f3;
+    border: 0;
+    border-radius: 4px;
+    margin-bottom: 31px;
+    transition: all 250ms ease-in-out;
+}
+
+.startbase-container .startcontent .startform .startform-group input:focus {
+    outline: none;
+    box-shadow: 0px 0px 12px 0.8px #0e81cd96;
+}
+
+.startbase-container .startfooter {
+    margin-top: 2em;
+    margin-right: 2em;
+    text-align: right;
+    
+} */
