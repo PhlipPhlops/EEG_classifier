@@ -6,6 +6,7 @@ import EDSettingsBar from './EDSettingsBar';
 import UploadField from '../components/UploadField';
 import FeedbackButton from '../components/FeedbackButton';
 import MontageInterface from '../MontageInterface/MontageInterface';
+import TimeAdjuster from '../components/TimeAdjuster';
 
 import LogoBar from '../components/LogoBar';
 
@@ -34,10 +35,11 @@ class ElectrogramPage extends React.Component {
         <div style={{pointerEvents: 'none'}} />
         <EDSettingsBar />
         <UploadFieldParent>
-          <div />
+          <div /> {/** FeedbackButton goes here */}
+          <TimeAdjuster />
           <button onClick={this.toggleMontageModal}>Edit Montage</button>
-          <div />
           <UploadField />
+          <div />
         </UploadFieldParent>
       </PageWrapper>
     )
@@ -55,7 +57,7 @@ const PageWrapper = styled.div`
 
 const UploadFieldParent = styled.div`
   display: grid;
-  grid-template-columns: 2vw 20vw 42vw 35vw 1vw;
+  grid-template-columns: 12vw 20vw 32vw 35vw 1vw;
   padding-top: 5px;
   grid-template-rows: 2rem;
 `;

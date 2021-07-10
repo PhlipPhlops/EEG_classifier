@@ -29,6 +29,8 @@ class ElectrogramDisplay extends React.Component {
     this.totalBufferSize = null
     // Buffer start index is tied into markAreas which will save to file
     this.bufferStartIndex = 0 // Index of loaded chunks relative to total num samples
+    // For index display
+    this.time_adjustment_secs = 0
     // Datazoom indices
     this.dz_start = 0
     this.dz_end = this.chunkSize
@@ -57,6 +59,8 @@ class ElectrogramDisplay extends React.Component {
     document.addEventListener("keydown", this.handleKeyDown);
 
     store.subscribe(() => {
+      this.time_adjustment_secs = store.getState().timeAdjuster
+      
       if (store.getState().serverStatus === 'UPLOADED'
         && !this.state.isRenderIntitialized
         && Object.keys(this.state.eegData).length == 0)
@@ -907,6 +911,13 @@ class ElectrogramDisplay extends React.Component {
      * Adds a series of 0s meant to be undisplayed,
      *  just for markAreas to be applied to
      */
+    let timestampFormatter = (value) => {
+      let secs = ((value + this.bufferStartIndex) / sampleRate) + this.time_adjustment_secs
+      var date = new Date(0);
+      date.setSeconds(secs);
+      return date.toISOString().substr(11, 8);
+    }
+
     this.backsplashGridIndex = keysArray.length
     let backsplashGridIndex = this.backsplashGridIndex
     let configureBacksplashGrid = () => {
@@ -918,10 +929,10 @@ class ElectrogramDisplay extends React.Component {
 
       grids.push({
         left: '10%',
-        right: '2%',
+        right: '4%',
         top: '0%',
-        bottom: '0%',
-        show: true,
+        bottom: '4%',
+        show: false,
         containLabel: false, // Help grids aligned by axis
       })
       yAxies.push({
@@ -953,7 +964,7 @@ class ElectrogramDisplay extends React.Component {
           show: true,
           interval: sampleRate - 1,
           formatter: (value, index) => {
-            return (value + this.bufferStartIndex) / sampleRate
+            return timestampFormatter(value)
           }
         },
         axisLine: {

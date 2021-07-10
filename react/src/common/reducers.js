@@ -4,6 +4,7 @@ let initialState = {
   serverStatus: 'ATTEMPTING',
   fileSampleRate: null,
   numSamples: null,
+  timeDisplayAdjustment: 0
 }
 
 const serverStatus = (state=initialState.serverStatus, action) => {
@@ -48,10 +49,22 @@ const numSamples = (state=initialState.numSamples, action) => {
   }
 }
 
+const timeAdjuster = (state=initialState.timeDisplayAdjustment, action) => {
+  switch (action.type) {
+
+    case 'client/adjust_timestamp':
+      return action.timeDisplayAdjustment
+
+    default:
+      return state
+  }
+}
+
 const reducers = combineReducers({
   serverStatus,
   sampleRate,
   numSamples,
+  timeAdjuster,
 })
 
 const store = createStore(reducers)
