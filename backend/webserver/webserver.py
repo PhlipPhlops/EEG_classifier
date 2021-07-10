@@ -124,6 +124,7 @@ def set_montage():
     """
     sid = request.form['sid']
     montage_list = json.loads(request.form['montage_json'])
+    logger.info(montage_list)
 
     # Store montage to file
     chunker = EegChunker()

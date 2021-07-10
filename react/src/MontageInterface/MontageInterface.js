@@ -108,8 +108,14 @@ class MontageInterface extends React.Component {
 
   setMontage = () => {
     let montageJson = JSON.stringify(this.state.montageList)
-    console.log("Montage sent")
     netface.setMontage(montageJson)
+      .then(() => {
+        console.log("Montage sent")
+        // Hide this interface
+        this.props.parentRef.toggleMontageModal()
+        // Send reset signal to electrogram display
+        this.props.parentRef.resetElectrogram()
+      })
   }
 
   render() {

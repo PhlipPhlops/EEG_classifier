@@ -9,14 +9,36 @@ import MontageInterface from '../MontageInterface/MontageInterface';
 import TimeAdjuster from '../components/TimeAdjuster';
 
 import LogoBar from '../components/LogoBar';
+import store from '../common/reducers';
+
 
 class ElectrogramPage extends React.Component {
 
   constructor(props) {
     super(props)
     this.state = {
-      showMontageModal: false
+      showMontageModal: false,
+      enableMontageButton: false,
+
+      // This is a bit of a hack
+      // if a child component is given a key, and that key changes
+      // during a rerender, the child is destroyed and a new one is mounted
+      // this is an easy way to reset hte entire electrogram
+      electrogramKey: 0
     }
+
+  }
+
+  componentDidMount() {
+    store.subscribe(() => {
+      this.time_adjustment_secs = store.getState().timeAdjuster
+      
+      if (store.getState().serverStatus === 'UPLOADED') {
+        // File has been successfully uploaded
+        // activates montage button
+        this.setState({enableMontageButton: true})
+      }
+    })
   }
 
   toggleMontageModal = () => {
@@ -24,20 +46,43 @@ class ElectrogramPage extends React.Component {
       showMontageModal: !this.state.showMontageModal
     })
   }
+
+  resetElectrogram = () => {
+    this.setState({
+      electrogramKey: this.state.electrogramKey + 1
+    })
+    // Redux dispatch to trigger a store subscribe update,
+    // triggering electogram intialization...
+    // it's messy I know...
+    store.dispatch({
+      type: 'reset_switch'
+    })
+  }
+
+  renderMontageToggler = () => {
+    if (this.state.enableMontageButton) {
+      return <button onClick={this.toggleMontageModal}>Edit Montage</button>
+    } else {
+      return <button disabled>Edit Montage</button>
+    }
+  }
   
   render() {
     return (
       <PageWrapper>
         <LogoBar />
         <EDSettingsBar />
-        <ElectrogramDisplay />
-        <MontageInterface show={this.state.showMontageModal} />
+        <ElectrogramDisplay
+          key={this.state.electrogramKey}
+          ref={(ref) => { this.echartRef = ref }} 
+          />
+        <MontageInterface show={this.state.showMontageModal} parentRef={this} />
         <div style={{pointerEvents: 'none'}} />
         <EDSettingsBar />
         <UploadFieldParent>
           <div /> {/** FeedbackButton goes here */}
           <TimeAdjuster />
-          <button onClick={this.toggleMontageModal}>Edit Montage</button>
+          {this.renderMontageToggler()}
           <UploadField />
           <div />
         </UploadFieldParent>

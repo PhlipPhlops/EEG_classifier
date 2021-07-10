@@ -60,7 +60,7 @@ class ElectrogramDisplay extends React.Component {
 
     store.subscribe(() => {
       this.time_adjustment_secs = store.getState().timeAdjuster
-      
+
       if (store.getState().serverStatus === 'UPLOADED'
         && !this.state.isRenderIntitialized
         && Object.keys(this.state.eegData).length == 0)
@@ -77,7 +77,6 @@ class ElectrogramDisplay extends React.Component {
         echart.showLoading({
           color: '#cccccc'
         })
-        
         this.initialDataLoad()
         // LEGACY
         // this.requestData(0, 10)
@@ -238,7 +237,7 @@ class ElectrogramDisplay extends React.Component {
     let echart = this.echartRef.getEchartsInstance()
     echart.setOption({
       series: {
-
+        type: 'line',
         name: 'backSplashSeries',
 
         data: [],
@@ -824,7 +823,7 @@ class ElectrogramDisplay extends React.Component {
         show: true,
         name: key,
         tooltip: {
-          show: true,
+          show: false,
           trigger: 'axis',
           showDelay: 25
         },
@@ -1007,7 +1006,7 @@ class ElectrogramDisplay extends React.Component {
       animation: false,
 
       tooltip: {
-        show: true,
+        show: false,
       },
 
       // toolbox hidden

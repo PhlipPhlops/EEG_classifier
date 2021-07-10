@@ -18,12 +18,15 @@ class EegChunker:
         """Format for the save path"""
         return '/tmp/'+'EEG_'+sid+'.pkl'
 
-    def cache_eeg_dataframe(self, sid, filepath, should_bipolar_preprocess):
+    def montage_save_path(self, sid):
+        """Format to save montaged files"""
+        return '/tmp/'+'MONTAGE_'+sid+'.pkl'
+
+    def cache_eeg_dataframe(self, sid, filepath, should_filter_body_motion):
         # Convert fif to dataframe
         fif = FIFReader(filepath)
-        if should_bipolar_preprocess:
+        if should_filter_body_motion:
             fif.filter_body_motion()
-            fif.bipolar_preprocess_DEPRECATE_SOON()
         df = fif.to_data_frame()
 
         # pickle dataframe to file
@@ -35,6 +38,14 @@ class EegChunker:
     # @cache.memoize(timeout=60)
     def retrieve_from_pickle(self, sid):
         """Cached method to retrieve dataframe from a keyed pattern"""
+        try:
+            # Attempt to read from saved montage
+            return pd.read_pickle(self.montage_save_path(sid))
+        except FileNotFoundError:
+            # If montage doesn't exist, read from original
+            return pd.read_pickle(self.save_path(sid))
+
+    def retrieve_original(self, sid):
         return pd.read_pickle(self.save_path(sid))
 
     def get_sample_rate(self, sid, filepath):
@@ -51,36 +62,59 @@ class EegChunker:
         df = self.retrieve_from_pickle(sid)
         chunk = df.iloc[:, i_start:i_end]
         # Apply montage if it exists
-        chunk = self.reorganize_by_montage(sid, chunk)
+        # chunk = self.reorganize_by_montage(sid, chunk)
         return chunk
 
 
 
-    ### MONTAGE METHODS
-    def montage_save_path(self, sid):
-        """Format for the save path"""
-        return '/tmp/'+'MONTAGE_'+sid+'.pkl'
-
     def store_montage(self, montage, sid):
-        path = self.montage_save_path(sid)
-        with open(path, 'wb') as f:
-            pickle.dump(montage, f)
-        logger.info("montage saved")
+        # Read original from pickle
+        # Reorganize into montage
+        # Store as pickle
+        df = self.retrieve_original(sid)
+        df = df.transpose()
 
-    def grab_montage(self, sid):
-        path = self.montage_save_path(sid)
-        try:
-            with open(path, 'rb') as f:
-                montage = pickle.load(f)
-            logger.info(f'montage retrieved: {montage}')
-            return montage
-        except (FileNotFoundError):
-            logger.info(f'Montage not loaded')
-            return []
+        kept_columns = []
+        logger.info(f"Montage: {montage}")
+        logger.info(f"Columns: {df.columns}")
+        for m in montage:
+            if len(m) == 0:
+                continue
+
+            if len(m) == 1 or m[1] == '':
+                column_name = f'{m[0]}'
+                kept_columns.append(column_name)
+                continue
+
+            if len(m) == 2 and m[0] == '':
+                if m[1] != '':
+                    column_name = f'{m[1]}'
+                    kept_columns.append(column_name)
+                    continue
+                else:
+                    continue
+
+            if not m[0] in df.columns or not m[1] in df.columns:
+                logger.info("passed")
+                continue
+
+            column_name = f'{m[0]}-{m[1]}'
+            kept_columns.append(column_name)
+            # Create the new bipolar columns
+            df[column_name] = df[m[0]] - df[m[1]]
+        # Keep only bipolar columns
+        df = df[kept_columns]
+        df = df.transpose()
+
+        df.to_pickle(self.montage_save_path(sid))
+        
 
     def reorganize_by_montage(self, sid, chunk_df):
         """Returns chunk reorganized into montage 
+
+        #### LEGACY METHOD
         """
+        return
         # PROBLEM
         # This method runs a calculation on every network request
         # This calculation could be run once and cached to save
