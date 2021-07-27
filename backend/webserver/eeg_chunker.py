@@ -74,19 +74,43 @@ class EegChunker:
         df = self.retrieve_original(sid)
         df = df.transpose()
 
+        # Build list of unique electrode names from montage
+        electrode_names = set()
+        for m in montage:
+            for el in m:
+                electrode_names.add(el)
+        # Remove empty string from set to prevent unversal matching
+        if '' in electrode_names:
+            electrode_names.remove('')
+        # Build renaming map, then rename
+        renaming_map = {}
+        for el in electrode_names:
+            for c in df.columns:
+                if el in c:
+                    # If simplified electrode name is contained
+                    # in column, rename the column to match it
+                    renaming_map[c] = el
+        # Apply rename
+        logger.info(f"Renaming Map: {renaming_map}")
+        df = df.rename(columns=renaming_map)
+
         kept_columns = []
         logger.info(f"Montage: {montage}")
         logger.info(f"Columns: {df.columns}")
         for m in montage:
+            #  For montage in montage list m: [e0, e1]
             if len(m) == 0:
+                # Montage is empty, ignore
                 continue
 
             if len(m) == 1 or m[1] == '':
+                # Montage contains only one electrode
                 column_name = f'{m[0]}'
                 kept_columns.append(column_name)
                 continue
 
             if len(m) == 2 and m[0] == '':
+                # Montage second element contains the only electrode
                 if m[1] != '':
                     column_name = f'{m[1]}'
                     kept_columns.append(column_name)
@@ -95,6 +119,8 @@ class EegChunker:
                     continue
 
             if not m[0] in df.columns or not m[1] in df.columns:
+                # Either electrode name is not contained in df
+                # Ignore
                 logger.info("passed")
                 continue
 
